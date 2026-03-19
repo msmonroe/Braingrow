@@ -39,7 +39,6 @@ def _reduce_2d(vectors: np.ndarray) -> np.ndarray:
         try:
             reducer = umap_module.UMAP(
                 n_components=2,
-                random_state=42,
                 n_neighbors=min(15, n - 1),
                 min_dist=0.1,
                 n_epochs=200,  # faster than default 500

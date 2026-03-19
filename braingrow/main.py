@@ -168,11 +168,7 @@ shifts — and how room opens for the next growth stage.
 
 
 def build_ui() -> gr.Blocks:
-    with gr.Blocks(
-        title="BrainGrow — Developmental AI POC",
-        theme=gr.themes.Soft(),
-        css=".label-wrap { font-weight: 600; }",
-    ) as demo:
+    with gr.Blocks(title="BrainGrow — Developmental AI POC") as demo:
         gr.Markdown(_HEADER_MD)
 
         with gr.Tabs():
@@ -285,4 +281,9 @@ def build_ui() -> gr.Blocks:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     demo = build_ui()
-    demo.launch(share=False, server_name="0.0.0.0")
+    demo.launch(
+        share=False,
+        server_name="0.0.0.0",
+        theme=gr.themes.Soft(),
+        css=".label-wrap { font-weight: 600; }",
+    )
