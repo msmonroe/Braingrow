@@ -34,6 +34,9 @@ class GrowthEngine:
         )
         self.stage_number: int = 0
         self._stage_history: List[dict] = []
+        # All (text, domain) pairs ever ingested — passed to DenseModel for
+        # identical training data on Tab 4 comparison.
+        self.all_chunks: List[Tuple[str, str]] = []
 
     # --------------------------------------------------------------------------
     def ingest_stage(self, chunks: List[Tuple[str, str]]) -> dict:
@@ -60,6 +63,7 @@ class GrowthEngine:
         for text, domain in chunks:
             if not text.strip():
                 continue
+            self.all_chunks.append((text, domain))  # track for DenseModel
             embedding = torch.tensor(
                 self.model.encode(text), dtype=torch.float32
             )
@@ -115,3 +119,4 @@ class GrowthEngine:
     def reset(self) -> None:
         self.stage_number = 0
         self._stage_history = []
+        self.all_chunks = []

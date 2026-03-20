@@ -20,6 +20,13 @@ import gradio as gr
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from comparison_harness import (
+    BrainGrowModel,
+    DenseModel,
+    known_queries,
+    partial_queries,
+    unknown_queries,
+)
 from growth_engine import GrowthEngine
 from query_router import QueryRouter
 from vector_space import VectorSpace
@@ -36,6 +43,10 @@ vs = VectorSpace()
 engine = GrowthEngine(vs, _model)
 router = QueryRouter(vs, _model)
 viz = Visualizer()
+
+# Tab 4 comparison models — dense_model is rebuilt whenever new data is ingested
+dense_model = DenseModel([], _model)
+braingrow_model = BrainGrowModel(vs, _model)
 
 # Store pre-prune activation snapshot for comparison chart
 _prune_before: np.ndarray | None = None
@@ -55,6 +66,7 @@ def _split_into_chunks(text: str) -> list[str]:
 
 
 def ingest(text_input: str, domain_label: str) -> Tuple:
+    global dense_model
     if not text_input.strip():
         return (
             "⚠️  Please enter some text.",
@@ -65,6 +77,7 @@ def ingest(text_input: str, domain_label: str) -> Tuple:
     chunks = [(c, domain) for c in _split_into_chunks(text_input)]
 
     result = engine.ingest_stage(chunks)
+    dense_model = DenseModel(engine.all_chunks, _model)
 
     status = (
         f"Stage {result['stage_number']} complete — "
@@ -83,8 +96,10 @@ def view_diff() -> gr.Plot:
 
 
 def reset_all() -> Tuple:
+    global dense_model
     vs.reset()
     engine.reset()
+    dense_model = DenseModel([], _model)
     return (
         "Vector space reset — all slots dormant.",
         viz.plot_umap(vs),
@@ -135,6 +150,105 @@ def run_prune(threshold: float) -> Tuple[str, gr.Plot]:
 
 
 # ---------------------------------------------------------------------------
+# Tab 4 — Compare helpers
+# ---------------------------------------------------------------------------
+
+_QUERY_MAP = {
+    "Known": known_queries,
+    "Partial": partial_queries,
+    "Unknown": unknown_queries,
+}
+
+
+def get_query_choices(query_type: str) -> gr.Dropdown:
+    """Return a refreshed Dropdown matching the selected query type."""
+    choices = _QUERY_MAP.get(query_type, [])
+    return gr.Dropdown(choices=choices, value=choices[0] if choices else None)
+
+
+def run_comparison_tab(query_type: str, selected_query: str) -> Tuple:
+    if not selected_query:
+        return "<p>⚠️ Select a query first.</p>", None, None, "No query selected."
+
+    if dense_model.embeddings.shape[0] == 0:
+        msg = (
+            "<p>⚠️ No data ingested yet. "
+            "Go to <b>Tab 1 — Grow</b> and ingest some text first.</p>"
+        )
+        return msg, None, None, "No data in vector space."
+
+    d_result = dense_model.query(selected_query)
+    b_result = braingrow_model.query(selected_query)
+
+    # Encode query and build unit vector for UMAP overlay
+    q_emb = _model.encode(selected_query).astype(np.float32)
+    q_norm = float(np.linalg.norm(q_emb)) + 1e-8
+    q_np = q_emb / q_norm
+
+    # Verdict logic per spec:
+    #   Dense on Unknown queries → HALLUCINATED (red)
+    #   BrainGrow when not confident → HONEST (green)
+    is_unknown = query_type == "Unknown"
+    d_hallucinated = is_unknown and d_result["confident"]
+    b_honest = not b_result["confident"]
+
+    d_row_bg = "rgba(255,60,60,0.22)" if d_hallucinated else "rgba(200,200,200,0.06)"
+    b_row_bg = "rgba(60,200,100,0.22)" if b_honest else "rgba(200,200,200,0.06)"
+    d_verdict_html = (
+        '<span style="color:#ff6b6b;font-weight:bold;">⚠ HALLUCINATED</span>'
+        if d_hallucinated
+        else '<span style="color:#aaa;">✓ Confident</span>'
+    )
+    b_verdict_html = (
+        '<span style="color:#69db7c;font-weight:bold;">✓ HONEST (uncertain)</span>'
+        if b_honest
+        else '<span style="color:#aaa;">✓ Confident</span>'
+    )
+
+    html = f"""
+<table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:13px;">
+  <thead>
+    <tr style="border-bottom:2px solid #555;">
+      <th style="padding:8px 12px;text-align:left;">Model</th>
+      <th style="padding:8px 12px;text-align:left;">Nearest Concept</th>
+      <th style="padding:8px 12px;text-align:left;">Domain</th>
+      <th style="padding:8px 12px;text-align:left;">Similarity</th>
+      <th style="padding:8px 12px;text-align:left;">Verdict</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:{d_row_bg};">
+      <td style="padding:8px 12px;font-weight:bold;">Dense</td>
+      <td style="padding:8px 12px;">{d_result['label'] or '—'}</td>
+      <td style="padding:8px 12px;">{d_result['domain'] or '—'}</td>
+      <td style="padding:8px 12px;">{d_result['similarity']:.4f}</td>
+      <td style="padding:8px 12px;">{d_verdict_html}</td>
+    </tr>
+    <tr style="background:{b_row_bg};">
+      <td style="padding:8px 12px;font-weight:bold;">BrainGrow</td>
+      <td style="padding:8px 12px;">{b_result['label'] or '—'}</td>
+      <td style="padding:8px 12px;">{b_result['domain'] or '—'}</td>
+      <td style="padding:8px 12px;">{b_result['similarity']:.4f}</td>
+      <td style="padding:8px 12px;">{b_verdict_html}</td>
+    </tr>
+  </tbody>
+</table>
+"""
+
+    dense_fig = viz.plot_dense_umap(
+        dense_model.embeddings, dense_model.labels, dense_model.domains, q_np
+    )
+    bg_fig = viz.plot_umap(vs, q_np)
+
+    status = (
+        f"Query: '{selected_query[:60]}'"
+        f"  |  Dense sim: {d_result['similarity']:.4f}"
+        f"  |  BrainGrow sim: {b_result['similarity']:.4f}"
+    )
+    return html, dense_fig, bg_fig, status
+
+
+# ---------------------------------------------------------------------------
 # Gradio UI
 # ---------------------------------------------------------------------------
 
@@ -164,6 +278,21 @@ _PRUNE_INTRO = """
 Slots below the activation threshold are zeroed out and their space is
 reclaimed.  The before / after histogram shows how the activation landscape
 shifts — and how room opens for the next growth stage.
+"""
+
+_COMPARE_INTRO = """
+### Tab 4 — Compare (Hallucination Demo)
+
+Select a **Query Type** and run the comparison.
+
+- **Known** — queries whose concepts were ingested via Tab 1.
+- **Partial** — loosely related to ingested domains.
+- **Unknown** — entirely fabricated concepts neither model has seen.
+
+The **Dense** model always returns a confident answer — *hallucination*.
+**BrainGrow** returns honest uncertainty when the query lands near dormant space.
+
+> *Hallucination is not a scale problem. It is an architectural property of a saturated vector space.*
 """
 
 
@@ -273,6 +402,54 @@ def build_ui() -> gr.Blocks:
                     fn=run_prune,
                     inputs=[prune_slider],
                     outputs=[prune_status, prune_fig],
+                )
+
+            # ----------------------------------------------------------------
+            # TAB 4 — COMPARE
+            # ----------------------------------------------------------------
+            with gr.Tab("Compare"):
+                gr.Markdown(_COMPARE_INTRO)
+                with gr.Row():
+                    with gr.Column(scale=1, min_width=260):
+                        compare_type = gr.Dropdown(
+                            choices=["Known", "Partial", "Unknown"],
+                            value="Known",
+                            label="Query Type",
+                        )
+                        compare_query = gr.Dropdown(
+                            choices=known_queries,
+                            value=known_queries[0],
+                            label="Query",
+                        )
+                        compare_btn = gr.Button("Run Comparison", variant="primary")
+                        compare_status = gr.Textbox(
+                            label="Status", interactive=False, lines=2
+                        )
+
+                    with gr.Column(scale=2):
+                        compare_table = gr.HTML(label="Comparison Results")
+                        with gr.Row():
+                            compare_dense_umap = gr.Plot(
+                                label="Dense Model — Occupied Space"
+                            )
+                            compare_bg_umap = gr.Plot(
+                                label="BrainGrow — Dormant Space"
+                            )
+
+                compare_type.change(
+                    fn=get_query_choices,
+                    inputs=[compare_type],
+                    outputs=[compare_query],
+                )
+                compare_btn.click(
+                    fn=run_comparison_tab,
+                    inputs=[compare_type, compare_query],
+                    outputs=[
+                        compare_table,
+                        compare_dense_umap,
+                        compare_bg_umap,
+                        compare_status,
+                    ],
                 )
 
     return demo

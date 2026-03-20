@@ -54,10 +54,13 @@ class Visualizer:
     """Stateless renderer — all state lives in VectorSpace."""
 
     # ------------------------------------------------------------------
-    def plot_umap(self, vs: VectorSpace) -> go.Figure:
+    def plot_umap(self, vs: VectorSpace, query_vector: np.ndarray | None = None) -> go.Figure:
         """
         2-D projection of the vector space.
         Active slots are coloured by domain; dormant slots are grey.
+        If *query_vector* is supplied it is rendered as a yellow star so the
+        caller can visually see where the query lands relative to active vs
+        dormant space.
         """
         active_mask = vs.get_active_mask()
         active_indices = active_mask.nonzero(as_tuple=True)[0].tolist()
@@ -68,7 +71,7 @@ class Visualizer:
 
         fig = go.Figure()
 
-        if not all_indices:
+        if not all_indices and query_vector is None:
             fig.update_layout(
                 title="Vector Space — empty (no slots active yet)",
                 template="plotly_dark",
@@ -77,14 +80,37 @@ class Visualizer:
             )
             return fig
 
-        vectors = vs.slots[all_indices].detach().numpy()
+        # Build the full set of vectors to project together so that the
+        # query star is embedded in the same coordinate space.
+        slot_vecs = (
+            vs.slots[all_indices].detach().numpy()
+            if all_indices
+            else np.empty((0, vs.D), dtype=np.float32)
+        )
+        if query_vector is not None:
+            q_arr = np.array(query_vector, dtype=np.float32).reshape(1, -1)
+            vectors = (
+                np.concatenate([slot_vecs, q_arr], axis=0)
+                if len(slot_vecs) > 0
+                else q_arr
+            )
+        else:
+            vectors = slot_vecs
+
+        if len(vectors) < 2:
+            fig.update_layout(
+                title="Not enough data to project",
+                template="plotly_dark",
+            )
+            return fig
+
         coords = _reduce_2d(vectors)
 
         n_active = len(active_indices)
 
         # --- dormant scatter (grey, small) ---
         if shown_dormant:
-            dom_xy = coords[n_active:]
+            dom_xy = coords[n_active : n_active + len(shown_dormant)]
             fig.add_trace(go.Scatter(
                 x=dom_xy[:, 0],
                 y=dom_xy[:, 1],
@@ -130,11 +156,119 @@ class Visualizer:
                     hoverinfo="text",
                 ))
 
+        # --- query vector star marker ---
+        if query_vector is not None:
+            q_xy = coords[-1:]
+            fig.add_trace(go.Scatter(
+                x=q_xy[:, 0],
+                y=q_xy[:, 1],
+                mode="markers",
+                marker=dict(
+                    color="rgba(255,255,0,0.95)",
+                    size=18,
+                    symbol="star",
+                    line=dict(width=1.5, color="white"),
+                ),
+                name="Query",
+                hoverinfo="name",
+            ))
+
         fig.update_layout(
             title=(
                 f"Vector Space — {len(active_indices):,} active "
                 f"/ {len(dormant_indices):,} dormant"
             ),
+            template="plotly_dark",
+            xaxis_title="dim-1",
+            yaxis_title="dim-2",
+            legend=dict(x=0.01, y=0.99, bgcolor="rgba(0,0,0,0.3)"),
+            margin=dict(l=40, r=30, t=50, b=40),
+        )
+        return fig
+
+    # ------------------------------------------------------------------
+    def plot_dense_umap(
+        self,
+        embeddings: np.ndarray,
+        labels: List[str],
+        domains: List[str],
+        query_vector: np.ndarray | None = None,
+    ) -> go.Figure:
+        """
+        UMAP / PCA plot for the DenseModel.
+
+        All slots are occupied (no dormant space). The query star will
+        visually land inside the cluster of coloured points, showing that
+        the dense model always forces an answer into occupied space.
+        """
+        fig = go.Figure()
+
+        if len(embeddings) == 0:
+            fig.update_layout(
+                title="Dense Model — no data ingested yet",
+                template="plotly_dark",
+            )
+            return fig
+
+        # Include query vector in the joint projection so it shares the
+        # same coordinate space as the training embeddings.
+        if query_vector is not None:
+            q_arr = np.array(query_vector, dtype=np.float32).reshape(1, -1)
+            vectors = np.concatenate([embeddings, q_arr], axis=0)
+        else:
+            vectors = embeddings
+
+        if len(vectors) < 2:
+            fig.update_layout(
+                title="Not enough data to project",
+                template="plotly_dark",
+            )
+            return fig
+
+        coords = _reduce_2d(vectors)
+        n_emb = len(embeddings)
+
+        unique_domains = sorted(set(domains))
+        palette = px.colors.qualitative.Plotly
+        domain_color = {d: palette[i % len(palette)] for i, d in enumerate(unique_domains)}
+
+        for domain in unique_domains:
+            idx_in = [j for j, d in enumerate(domains) if d == domain]
+            d_xy = coords[idx_in]
+            d_labels = [labels[j] for j in idx_in]
+            fig.add_trace(go.Scatter(
+                x=d_xy[:, 0],
+                y=d_xy[:, 1],
+                mode="markers",
+                marker=dict(
+                    color=domain_color[domain],
+                    size=7,
+                    opacity=0.85,
+                    line=dict(width=0.5, color="white"),
+                ),
+                name=f"{domain} ({len(idx_in)})",
+                text=d_labels,
+                hoverinfo="text",
+            ))
+
+        if query_vector is not None:
+            q_xy = coords[-1:]
+            fig.add_trace(go.Scatter(
+                x=q_xy[:, 0],
+                y=q_xy[:, 1],
+                mode="markers",
+                marker=dict(
+                    color="rgba(255,255,0,0.95)",
+                    size=18,
+                    symbol="star",
+                    line=dict(width=1.5, color="white"),
+                ),
+                name="Query",
+                hoverinfo="name",
+            ))
+
+        fig.update_layout(
+            title=f"Dense Model — {n_emb:,} slots (fully occupied, no dormant space)",
             template="plotly_dark",
             xaxis_title="dim-1",
             yaxis_title="dim-2",
