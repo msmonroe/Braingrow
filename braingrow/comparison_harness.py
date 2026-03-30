@@ -15,6 +15,7 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
+from utils import encode_unit_numpy, encode_unit_torch
 from vector_space import VectorSpace
 
 # ---------------------------------------------------------------------------
@@ -73,9 +74,7 @@ class DenseModel:
         for text, domain in chunks:
             if not text.strip():
                 continue
-            emb = model.encode(text.strip()).astype(np.float32)
-            norm = float(np.linalg.norm(emb)) + 1e-8
-            raw.append(emb / norm)
+            raw.append(encode_unit_numpy(model, text))
             self.labels.append(text[:60].strip())
             self.domains.append(domain)
 
@@ -99,9 +98,7 @@ class DenseModel:
         if self.embeddings.shape[0] == 0:
             return {"label": "", "domain": "", "similarity": 0.0, "confident": True}
 
-        emb = self.model.encode(text.strip()).astype(np.float32)
-        norm = float(np.linalg.norm(emb)) + 1e-8
-        emb_unit = emb / norm
+        emb_unit = encode_unit_numpy(self.model, text)
 
         sims = self.embeddings @ emb_unit
         best = int(np.argmax(sims))
@@ -136,8 +133,10 @@ class BrainGrowModel:
         """
         Route *text* through active slots only.
 
-        If max similarity < THRESHOLD returns honest uncertainty
-        (confident=False) rather than a forced answer.
+        Verdict logic:
+          - max_similarity < THRESHOLD          → HONEST (uncertain)
+          - 'negative' in nearest domain         → ⚠️ BOUNDARY VIOLATION
+          - otherwise                            → ✓ Confident
 
         Returns
         -------
@@ -146,6 +145,7 @@ class BrainGrowModel:
             domain     : str,
             similarity : float,
             confident  : bool,
+            verdict    : str,
         }
         """
         active_mask = self.vs.get_active_mask()
@@ -156,12 +156,10 @@ class BrainGrowModel:
                 "domain": "",
                 "similarity": 0.0,
                 "confident": False,
+                "verdict": "HONEST (uncertain)",
             }
 
-        emb = torch.tensor(
-            self.model.encode(text.strip()), dtype=torch.float32
-        )
-        emb_unit = emb / (emb.norm() + 1e-8)
+        emb_unit = encode_unit_torch(self.model, text)
 
         active_indices = active_mask.nonzero(as_tuple=True)[0]
         active_vecs = self.vs.slots[active_indices]
@@ -170,20 +168,27 @@ class BrainGrowModel:
         best_local = int(sims.argmax().item())
         best_sim = float(sims[best_local].item())
         slot_idx = int(active_indices[best_local].item())
+        nearest_domain = self.vs.slot_domains.get(slot_idx, "unknown")
 
         if best_sim < self.THRESHOLD:
-            return {
-                "label": "no learned representation found",
-                "domain": "",
-                "similarity": round(best_sim, 4),
-                "confident": False,
-            }
+            verdict = "HONEST (uncertain)"
+            confident = False
+        elif "negative" in nearest_domain:
+            verdict = "⚠️ BOUNDARY VIOLATION"
+            confident = True
+        else:
+            verdict = "✓ Confident"
+            confident = True
 
         return {
-            "label": self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}"),
-            "domain": self.vs.slot_domains.get(slot_idx, "unknown"),
+            "label": (
+                "no learned representation found" if not confident
+                else self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}")
+            ),
+            "domain": nearest_domain,
             "similarity": round(best_sim, 4),
-            "confident": True,
+            "confident": confident,
+            "verdict": verdict,
         }
 
 
@@ -214,7 +219,7 @@ def run_comparison(
                 if d["confident"] and d["similarity"] < BrainGrowModel.THRESHOLD
                 else "confident"
             )
-            b_tag = "HONEST" if not b["confident"] else "confident"
+            b_tag = b["verdict"]
             print(
                 f"{q[:41]:<42} "
                 f"{d['similarity']:.3f} {d_tag:<15} "

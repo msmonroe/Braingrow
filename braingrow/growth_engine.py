@@ -10,10 +10,13 @@ each call to ingest_stage() represents one developmental stage.
 from __future__ import annotations
 from typing import List, Tuple, Union
 
+import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
 from vector_space import VectorSpace
+
+_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 class GrowthEngine:
@@ -29,8 +32,8 @@ class GrowthEngine:
     ) -> None:
         self.vs = vector_space
         self.model: SentenceTransformer = (
-            model if isinstance(model, SentenceTransformer)
-            else SentenceTransformer(model)
+            SentenceTransformer(model) if isinstance(model, str)
+            else model
         )
         self.stage_number: int = 0
         self._stage_history: List[dict] = []
@@ -39,7 +42,12 @@ class GrowthEngine:
         self.all_chunks: List[Tuple[str, str]] = []
 
     # --------------------------------------------------------------------------
-    def ingest_stage(self, chunks: List[Tuple[str, str]]) -> dict:
+    def ingest_stage(
+        self,
+        chunks: List[Tuple[str, str]],
+        autosave: bool = False,
+        saves_dir: str = 'saves',
+    ) -> dict:
         """
         Process one developmental stage.
 
@@ -60,50 +68,29 @@ class GrowthEngine:
         slots_activated: List[int] = []
         slots_reinforced: List[int] = []
 
-        for text, domain in chunks:
-            if not text.strip():
-                continue
-            self.all_chunks.append((text, domain))  # track for DenseModel
-            embedding = torch.tensor(
-                self.model.encode(text), dtype=torch.float32
-            )
-            emb_unit = embedding / (embedding.norm() + 1e-8)
+        # Batch-encode all texts in one GPU call instead of one-at-a-time
+        valid_chunks = [(t, d) for t, d in chunks if t.strip()]
+        if not valid_chunks:
+            return self._finalise_stage([], [], autosave, saves_dir)
 
-            # Check for near-duplicate in the active space first
-            active_mask = self.vs.get_active_mask()
-            if active_mask.any():
-                active_indices = active_mask.nonzero(as_tuple=True)[0]
-                active_vecs = self.vs.slots[active_indices]
-                sims = active_vecs @ emb_unit
-                max_sim = float(sims.max().item())
+        texts_list = [t for t, _ in valid_chunks]
+        domains_list = [d for _, d in valid_chunks]
+        total = len(texts_list)
+        embeddings_np = self.model.encode(
+            texts_list,
+            device=_DEVICE,
+            batch_size=512,
+            show_progress_bar=True,
+            convert_to_numpy=True,
+        )
 
-                if max_sim >= self.REINFORCE_THRESHOLD:
-                    best_global = int(active_indices[sims.argmax().item()].item())
-                    self.vs.reinforce(best_global)
-                    slots_reinforced.append(best_global)
-                    continue  # no new slot needed
+        for i, (emb_np, text, domain) in enumerate(zip(embeddings_np, texts_list, domains_list)):
+            if i % 100 == 0:
+                print(f"Progress: {i}/{total} chunks ingested")
+            self._process_embedding(emb_np, text, domain, slots_activated, slots_reinforced)
 
-            # Grow into the nearest dormant region
-            result = self.vs.assign_slot(
-                emb_unit,
-                label=text[:60].strip(),
-                domain=domain,
-            )
-            slots_activated.append(result["slot_idx"])
-
-        dormant_remaining = int((self.vs.activation == 0.0).sum().item())
-
-        stage_result = {
-            "slots_activated": slots_activated,
-            "slots_reinforced": slots_reinforced,
-            "dormant_remaining": dormant_remaining,
-            "stage_number": self.stage_number,
-        }
-        self._stage_history.append({
-            "stage": self.stage_number,
-            "slots": slots_activated[:],
-        })
-        return stage_result
+        print(f"Progress: {total}/{total} chunks ingested")
+        return self._finalise_stage(slots_activated, slots_reinforced, autosave, saves_dir)
 
     # --------------------------------------------------------------------------
     def get_stage_diff(self) -> dict:
@@ -120,3 +107,106 @@ class GrowthEngine:
         self.stage_number = 0
         self._stage_history = []
         self.all_chunks = []
+
+    # --------------------------------------------------------------------------
+    # Private helpers — eliminate duplication between ingest_stage variants
+    # --------------------------------------------------------------------------
+    def _process_embedding(
+        self,
+        emb_np: np.ndarray,
+        text: str,
+        domain: str,
+        slots_activated: List[int],
+        slots_reinforced: List[int],
+    ) -> None:
+        """Reinforce an existing near-duplicate slot or grow into a dormant one."""
+        self.all_chunks.append((text, domain))
+        embedding = torch.tensor(emb_np, dtype=torch.float32)
+        emb_unit = embedding / (embedding.norm() + 1e-8)
+
+        active_mask = self.vs.get_active_mask()
+        if active_mask.any():
+            active_indices = active_mask.nonzero(as_tuple=True)[0]
+            active_vecs = self.vs.slots[active_indices]
+            sims = active_vecs @ emb_unit
+            max_sim = float(sims.max().item())
+            if max_sim >= self.REINFORCE_THRESHOLD:
+                best_global = int(active_indices[sims.argmax().item()].item())
+                self.vs.reinforce(best_global)
+                slots_reinforced.append(best_global)
+                return
+
+        result = self.vs.assign_slot(emb_unit, label=text[:60].strip(), domain=domain)
+        slots_activated.append(result["slot_idx"])
+
+    def _finalise_stage(
+        self,
+        slots_activated: List[int],
+        slots_reinforced: List[int],
+        autosave: bool,
+        saves_dir: str,
+    ) -> dict:
+        """Build the stage result dict, update history, sync state, and autosave."""
+        dormant_remaining = int((self.vs.activation == 0.0).sum().item())
+        stage_result = {
+            "slots_activated": slots_activated,
+            "slots_reinforced": slots_reinforced,
+            "dormant_remaining": dormant_remaining,
+            "stage_number": self.stage_number,
+        }
+        self._stage_history.append({"stage": self.stage_number, "slots": slots_activated[:]})
+        self.vs.stage_number = self.stage_number
+        if autosave:
+            path = self.vs.autosave(saves_dir)
+            print(f'Autosaved to {path}')
+        return stage_result
+
+    # --------------------------------------------------------------------------
+    def ingest_stage_batched(
+        self,
+        chunks: List[Tuple[str, str]],
+        batch_size: int = 512,
+        autosave: bool = False,
+        saves_dir: str = 'saves',
+    ) -> dict:
+        """
+        High-throughput ingestion for large datasets (e.g. TinyStories).
+
+        Encodes all *chunks* in a single batched GPU call instead of one
+        text at a time.  Use this when ingesting thousands of chunks.
+
+        Parameters
+        ----------
+        chunks      : list of (text_chunk, domain_label)
+        batch_size  : sentences per encoding batch (GPU memory trade-off)
+        autosave    : write a .bgstate checkpoint after this stage
+        saves_dir   : directory for autosave files
+        """
+        if not chunks:
+            return {"slots_activated": [], "slots_reinforced": [],
+                    "dormant_remaining": int((self.vs.activation == 0).sum().item()),
+                    "stage_number": self.stage_number}
+
+        self.stage_number += 1
+        slots_activated: List[int] = []
+        slots_reinforced: List[int] = []
+
+        texts  = [c[0] for c in chunks if c[0].strip()]
+        labels = [c[1] for c in chunks if c[0].strip()]
+
+        embeddings = self.model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=True,
+            device=_DEVICE,
+            convert_to_numpy=True,
+        )
+
+        total = len(texts)
+        for i, (emb_np, label, text) in enumerate(zip(embeddings, labels, texts)):
+            if i % 100 == 0:
+                print(f"Progress: {i}/{total} chunks ingested")
+            self._process_embedding(emb_np, text, label, slots_activated, slots_reinforced)
+
+        print(f"Progress: {total}/{total} chunks ingested")
+        return self._finalise_stage(slots_activated, slots_reinforced, autosave, saves_dir)

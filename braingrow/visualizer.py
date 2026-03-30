@@ -28,20 +28,70 @@ from sklearn.decomposition import PCA
 
 # Max dormant slots shown in the UMAP scatter to keep rendering fast
 _MAX_DORMANT_SHOWN = 300
+# Max active slots shown — sample when network exceeds this for performance
+_MAX_ACTIVE_SHOWN = 5_000
 # Minimum points needed to attempt UMAP (needs n_neighbors + 1 at minimum)
 _UMAP_MIN_POINTS = 20
 
 
-def _reduce_2d(vectors: np.ndarray) -> np.ndarray:
+def _add_query_star(fig: go.Figure, coords: np.ndarray, query_vector) -> None:
+    """Overlay a yellow star marker at coords[-1] when query_vector is provided."""
+    if query_vector is None:
+        return
+    q_xy = coords[-1:]
+    fig.add_trace(go.Scatter(
+        x=q_xy[:, 0],
+        y=q_xy[:, 1],
+        mode="markers",
+        marker=dict(
+            color="rgba(255,255,0,0.95)",
+            size=18,
+            symbol="star",
+            line=dict(width=1.5, color="white"),
+        ),
+        name="Query",
+        hoverinfo="name",
+    ))
+
+
+def _domain_colour_map(domains: list) -> dict:
+    """Map each unique domain name to a Plotly qualitative colour."""
+    unique = sorted(set(domains))
+    palette = px.colors.qualitative.Plotly
+    return {d: palette[i % len(palette)] for i, d in enumerate(unique)}
+
+
+# Shared layout kwargs for all 2-D scatter plots
+_SCATTER_LAYOUT = dict(
+    template="plotly_dark",
+    xaxis_title="dim-1",
+    yaxis_title="dim-2",
+    legend=dict(x=0.01, y=0.99, bgcolor="rgba(0,0,0,0.3)"),
+    margin=dict(l=40, r=30, t=50, b=40),
+)
+
+
+def _reduce_2d(vectors: np.ndarray, labels: list | None = None) -> np.ndarray:
     """Project *vectors* [N, D] to 2D using UMAP when possible, else PCA."""
     n = len(vectors)
+
+    # Cap at 5,000 points before passing to UMAP to keep projection fast
+    if n > 5_000:
+        idx = np.random.choice(n, 5_000, replace=False)
+        vectors = vectors[idx]
+        if labels is not None:
+            labels[:] = [labels[i] for i in idx]
+        n = 5_000
+
     if _UMAP_AVAILABLE and n >= _UMAP_MIN_POINTS:
         try:
             reducer = umap_module.UMAP(
                 n_components=2,
                 n_neighbors=min(15, n - 1),
                 min_dist=0.1,
-                n_epochs=200,  # faster than default 500
+                metric='cosine',
+                low_memory=True,
+                n_jobs=-1,
             )
             return reducer.fit_transform(vectors)
         except Exception:
@@ -65,6 +115,15 @@ class Visualizer:
         active_mask = vs.get_active_mask()
         active_indices = active_mask.nonzero(as_tuple=True)[0].tolist()
         dormant_indices = (~active_mask).nonzero(as_tuple=True)[0].tolist()
+
+        # Sample active indices when the network is very large to keep UMAP fast
+        _sampled = False
+        if len(active_indices) > _MAX_ACTIVE_SHOWN:
+            sample_idx = np.random.choice(
+                len(active_indices), _MAX_ACTIVE_SHOWN, replace=False
+            )
+            active_indices = [active_indices[i] for i in sample_idx]
+            _sampled = True
 
         shown_dormant = dormant_indices[:_MAX_DORMANT_SHOWN]
         all_indices = active_indices + shown_dormant
@@ -127,11 +186,9 @@ class Visualizer:
             labels = [vs.slot_labels.get(i, f"slot_{i}") for i in active_indices]
             activations = [float(vs.activation[i].item()) for i in active_indices]
 
-            unique_domains = sorted(set(domains))
-            palette = px.colors.qualitative.Plotly
-            domain_color = {d: palette[i % len(palette)] for i, d in enumerate(unique_domains)}
+            domain_color = _domain_colour_map(domains)
 
-            for domain in unique_domains:
+            for domain in domain_color:
                 idx_in_active = [j for j, d in enumerate(domains) if d == domain]
                 d_xy = act_xy[idx_in_active]
                 d_labels = [labels[j] for j in idx_in_active]
@@ -157,32 +214,15 @@ class Visualizer:
                 ))
 
         # --- query vector star marker ---
-        if query_vector is not None:
-            q_xy = coords[-1:]
-            fig.add_trace(go.Scatter(
-                x=q_xy[:, 0],
-                y=q_xy[:, 1],
-                mode="markers",
-                marker=dict(
-                    color="rgba(255,255,0,0.95)",
-                    size=18,
-                    symbol="star",
-                    line=dict(width=1.5, color="white"),
-                ),
-                name="Query",
-                hoverinfo="name",
-            ))
+        _add_query_star(fig, coords, query_vector)
 
         fig.update_layout(
             title=(
-                f"Vector Space — {len(active_indices):,} active "
-                f"/ {len(dormant_indices):,} dormant"
+                f"Vector Space — {len(active_mask.nonzero(as_tuple=True)[0]):,} active"
+                + (f" (showing {_MAX_ACTIVE_SHOWN:,} sampled)" if _sampled else "")
+                + f" / {len(dormant_indices):,} dormant"
             ),
-            template="plotly_dark",
-            xaxis_title="dim-1",
-            yaxis_title="dim-2",
-            legend=dict(x=0.01, y=0.99, bgcolor="rgba(0,0,0,0.3)"),
-            margin=dict(l=40, r=30, t=50, b=40),
+            **_SCATTER_LAYOUT,
         )
         return fig
 
@@ -228,11 +268,9 @@ class Visualizer:
         coords = _reduce_2d(vectors)
         n_emb = len(embeddings)
 
-        unique_domains = sorted(set(domains))
-        palette = px.colors.qualitative.Plotly
-        domain_color = {d: palette[i % len(palette)] for i, d in enumerate(unique_domains)}
+        domain_color = _domain_colour_map(domains)
 
-        for domain in unique_domains:
+        for domain in domain_color:
             idx_in = [j for j, d in enumerate(domains) if d == domain]
             d_xy = coords[idx_in]
             d_labels = [labels[j] for j in idx_in]
@@ -251,29 +289,11 @@ class Visualizer:
                 hoverinfo="text",
             ))
 
-        if query_vector is not None:
-            q_xy = coords[-1:]
-            fig.add_trace(go.Scatter(
-                x=q_xy[:, 0],
-                y=q_xy[:, 1],
-                mode="markers",
-                marker=dict(
-                    color="rgba(255,255,0,0.95)",
-                    size=18,
-                    symbol="star",
-                    line=dict(width=1.5, color="white"),
-                ),
-                name="Query",
-                hoverinfo="name",
-            ))
+        _add_query_star(fig, coords, query_vector)
 
         fig.update_layout(
             title=f"Dense Model — {n_emb:,} slots (fully occupied, no dormant space)",
-            template="plotly_dark",
-            xaxis_title="dim-1",
-            yaxis_title="dim-2",
-            legend=dict(x=0.01, y=0.99, bgcolor="rgba(0,0,0,0.3)"),
-            margin=dict(l=40, r=30, t=50, b=40),
+            **_SCATTER_LAYOUT,
         )
         return fig
 
@@ -350,11 +370,7 @@ class Visualizer:
 
         fig.update_layout(
             title="Stage Diff — New Activations vs Prior Stages",
-            template="plotly_dark",
-            xaxis_title="dim-1",
-            yaxis_title="dim-2",
-            legend=dict(x=0.01, y=0.99, bgcolor="rgba(0,0,0,0.3)"),
-            margin=dict(l=40, r=30, t=50, b=40),
+            **_SCATTER_LAYOUT,
         )
         return fig
 

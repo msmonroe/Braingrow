@@ -1,28 +1,41 @@
 """
 vector_space.py — Core data structure for BrainGrow.
 
-Pre-allocates N=10,000 vector slots of D=384 dimensions (matching
+Pre-allocates N=200,000 vector slots of D=384 dimensions (matching
 all-MiniLM-L6-v2).  Each slot begins life as a random unit vector
 (dormant, activation=0).  Knowledge "grows into" dormant regions via
 assign_slot().  Active slots can be reinforced on query hits and decayed
 or pruned over time.
+
+N increased to 200,000 for TinyStories scale experiment.
 """
 
 from __future__ import annotations
-from typing import Dict
+import os
+from datetime import datetime
+from typing import Dict, List
 
 import torch
 
 
 class VectorSpace:
-    N: int = 10_000   # total pre-allocated slots
+    N: int = 200_000  # total pre-allocated slots (scaled for TinyStories)
     D: int = 384      # embedding dimension (all-MiniLM-L6-v2)
 
     REINFORCE_STEP: float = 0.10   # activation gain per query hit
     DECAY_RATE: float = 0.005      # activation loss per decay() call
 
     # --------------------------------------------------------------------------
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        n_slots: int | None = None,
+        dimensions: int | None = None,
+    ) -> None:
+        if n_slots is not None:
+            self.N = n_slots
+        if dimensions is not None:
+            self.D = dimensions
+
         # Pre-allocate and normalise to unit sphere so cosine sim == dot product
         raw = torch.randn(self.N, self.D)
         self.slots: torch.Tensor = raw / raw.norm(dim=1, keepdim=True)
@@ -35,6 +48,7 @@ class VectorSpace:
         self.slot_domains: Dict[int, str] = {}
 
         self._step: int = 0  # internal tick for future use
+        self.stage_number: int = 0  # synced from GrowthEngine on each stage
 
     # --------------------------------------------------------------------------
     # Slot assignment
@@ -138,6 +152,19 @@ class VectorSpace:
         """Boolean tensor [N] — True for active slots."""
         return self.activation > 0.0
 
+    @property
+    def n_active(self) -> int:
+        """Count of currently active slots."""
+        return int((self.activation > 0).sum().item())
+
+    @property
+    def domain_registry(self) -> Dict[str, List[int]]:
+        """Inverse of slot_domains: maps domain name → list of slot indices."""
+        result: Dict[str, List[int]] = {}
+        for slot_idx, domain in self.slot_domains.items():
+            result.setdefault(domain, []).append(slot_idx)
+        return result
+
     def reset(self) -> None:
         """Restore the vector space to its initial state."""
         raw = torch.randn(self.N, self.D)
@@ -146,3 +173,71 @@ class VectorSpace:
         self.slot_labels = {}
         self.slot_domains = {}
         self._step = 0
+        self.stage_number = 0
+
+    # --------------------------------------------------------------------------
+    # Persistence — save / load / autosave
+    # --------------------------------------------------------------------------
+    def save(self, path: str, description: str = '') -> str:
+        """
+        Persist the full network state to *path* using torch.save.
+        Files use the .bgstate extension.
+        Returns the path that was written.
+        """
+        from pathlib import Path
+
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        state = {
+            'slots':           self.slots,
+            'activation':      self.activation,
+            'slot_labels':     self.slot_labels,
+            'n_active':        self.n_active,
+            'stage_number':    self.stage_number,
+            'domain_registry': self.domain_registry,
+            'metadata': {
+                'saved_at':    datetime.now().isoformat(),
+                'n_slots':     self.slots.shape[0],
+                'dimensions':  self.slots.shape[1],
+                'version':     '1.0',
+                'description': description,
+            },
+        }
+        torch.save(state, path)
+        return path
+
+    @classmethod
+    def load(cls, path: str):
+        """
+        Reconstruct a VectorSpace from a .bgstate file.
+
+        Returns
+        -------
+        (VectorSpace, metadata_dict)
+        """
+        state = torch.load(path, map_location='cpu', weights_only=False)
+        meta = state['metadata']
+
+        vs = cls(
+            n_slots=meta['n_slots'],
+            dimensions=meta['dimensions'],
+        )
+        vs.slots       = state['slots']
+        vs.activation  = state['activation']
+        vs.slot_labels = state['slot_labels']
+        vs.stage_number = state.get('stage_number', 0)
+
+        # Reconstruct slot_domains from the saved domain_registry
+        domain_registry = state.get('domain_registry', {})
+        vs.slot_domains = {}
+        for domain, indices in domain_registry.items():
+            for idx in indices:
+                vs.slot_domains[int(idx)] = domain
+
+        return vs, meta
+
+    def autosave(self, saves_dir: str = 'saves') -> str:
+        """Write a timestamped autosave to *saves_dir* and return the path."""
+        os.makedirs(saves_dir, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        path = os.path.join(saves_dir, f'autosave_{timestamp}.bgstate')
+        return self.save(path, description='autosave')

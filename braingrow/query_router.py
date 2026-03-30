@@ -13,6 +13,7 @@ from typing import List, Union
 import torch
 from sentence_transformers import SentenceTransformer
 
+from utils import encode_unit_torch
 from vector_space import VectorSpace
 
 
@@ -24,8 +25,8 @@ class QueryRouter:
     ) -> None:
         self.vs = vector_space
         self.model: SentenceTransformer = (
-            model if isinstance(model, SentenceTransformer)
-            else SentenceTransformer(model)
+            SentenceTransformer(model) if isinstance(model, str)
+            else model
         )
 
     # --------------------------------------------------------------------------
@@ -39,15 +40,18 @@ class QueryRouter:
             matches: [
                 {slot_idx, label, domain, similarity, activation}, ...
             ],
-            active_count  : int,
-            dormant_count : int,
-            query_embedding: Tensor[D],
+            active_count     : int,
+            dormant_count    : int,
+            query_embedding  : Tensor[D],
+            boundary_violation: bool,   # True when nearest domain contains 'negative'
+            nearest_domain   : str,     # domain of the top match (empty if no matches)
         }
+
+        When *boundary_violation* is True the caller should surface
+        "BOUNDARY VIOLATION — concept exists but combination is invalid"
+        rather than the raw matches.
         """
-        embedding = torch.tensor(
-            self.model.encode(text.strip()), dtype=torch.float32
-        )
-        emb_unit = embedding / (embedding.norm() + 1e-8)
+        emb_unit = encode_unit_torch(self.model, text)
 
         active_mask = self.vs.get_active_mask()
         active_count = int(active_mask.sum().item())
@@ -58,7 +62,9 @@ class QueryRouter:
                 "matches": [],
                 "active_count": 0,
                 "dormant_count": dormant_count,
-                "query_embedding": embedding,
+                "query_embedding": emb_unit,
+                "nearest_domain": "",
+                "boundary_violation": False,
             }
 
         active_indices = active_mask.nonzero(as_tuple=True)[0]
@@ -81,9 +87,14 @@ class QueryRouter:
                 "activation": round(float(self.vs.activation[slot_idx].item()), 4),
             })
 
+        nearest_domain = matches[0]["domain"] if matches else ""
+        boundary_violation = "negative" in nearest_domain
+
         return {
             "matches": matches,
             "active_count": active_count,
             "dormant_count": dormant_count,
-            "query_embedding": embedding,
+            "query_embedding": emb_unit,
+            "nearest_domain": nearest_domain,
+            "boundary_violation": boundary_violation,
         }
