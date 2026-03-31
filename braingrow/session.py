@@ -128,12 +128,13 @@ class BrainGrowSession:
         chunks = [(c, domain) for c in self._split_into_chunks(text_input)]
         log_event("ingest: %d chunks  domain=%r", len(chunks), domain)
 
+        n_before = len(self.dense_model.labels)
         result = self.engine.ingest_stage(
             chunks,
             autosave=self.autosave_enabled,
             saves_dir=str(self.SAVES_DIR),
         )
-        self.dense_model = DenseModel(self.engine.all_chunks, self._model)
+        self.dense_model.extend(self.engine.all_chunks[n_before:])
 
         log_event(
             "ingest done: stage=%d  activated=%d  reinforced=%d  dormant=%d",
@@ -457,13 +458,14 @@ class BrainGrowSession:
 
         status_lines.append(f"⏳ Ingesting {len(chunks):,} chunks (batched encoding)…")
 
+        n_before = len(self.dense_model.labels)
         result = self.engine.ingest_stage_batched(
             chunks,
             batch_size=512,
             autosave=self.autosave_enabled,
             saves_dir=str(self.SAVES_DIR),
         )
-        self.dense_model = DenseModel(self.engine.all_chunks, self._model)
+        self.dense_model.extend(self.engine.all_chunks[n_before:])
 
         autosave_note = "  | autosaved ✓" if self.autosave_enabled else ""
         status_lines.append(

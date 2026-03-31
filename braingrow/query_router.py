@@ -8,6 +8,7 @@ reinforced, raising its activation score.
 """
 
 from __future__ import annotations
+import re
 from typing import List, Union
 
 import torch
@@ -88,7 +89,12 @@ class QueryRouter:
             })
 
         nearest_domain = matches[0]["domain"] if matches else ""
-        boundary_violation = "negative" in nearest_domain
+        # Match the standalone word "negative" but not when it is part of
+        # "non-negative" (e.g. a domain named "non-negative-math" should not
+        # trigger a boundary violation).
+        boundary_violation = bool(
+            re.search(r'(?<!non-)\bnegative\b', nearest_domain, re.IGNORECASE)
+        )
 
         return {
             "matches": matches,

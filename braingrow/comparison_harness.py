@@ -9,6 +9,7 @@ vector space — not a scale or data-quantity problem.
 """
 
 from __future__ import annotations
+import re
 from typing import List, Tuple
 
 import numpy as np
@@ -17,6 +18,8 @@ from sentence_transformers import SentenceTransformer
 
 from utils import encode_unit_numpy, encode_unit_torch
 from vector_space import VectorSpace
+
+_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # ---------------------------------------------------------------------------
 # Predefined query sets (copy verbatim from spec)
@@ -109,6 +112,30 @@ class DenseModel:
             "confident": True,  # always confident — hallucination mechanism
         }
 
+    def extend(self, new_chunks: List[Tuple[str, str]]) -> None:
+        """
+        Encode and append *new_chunks* without re-encoding historical data.
+
+        Use this instead of rebuilding DenseModel from scratch after each
+        ingest — reduces encoding cost from O(n_total) to O(n_new) per stage.
+        """
+        valid = [(t, d) for t, d in new_chunks if t.strip()]
+        if not valid:
+            return
+        texts = [t for t, _ in valid]
+        embs_raw = self.model.encode(texts, device=_DEVICE, convert_to_numpy=True)
+        norms = np.linalg.norm(embs_raw, axis=1, keepdims=True)
+        new_embs = (embs_raw / (norms + 1e-8)).astype(np.float32)
+        new_labels = [t[:60].strip() for t in texts]
+        new_domains = [d for _, d in valid]
+        self.embeddings = (
+            np.concatenate([self.embeddings, new_embs], axis=0)
+            if self.embeddings.shape[0] > 0
+            else new_embs
+        )
+        self.labels.extend(new_labels)
+        self.domains.extend(new_domains)
+
 
 # ---------------------------------------------------------------------------
 # BrainGrowModel
@@ -173,7 +200,7 @@ class BrainGrowModel:
         if best_sim < self.THRESHOLD:
             verdict = "HONEST (uncertain)"
             confident = False
-        elif "negative" in nearest_domain:
+        elif re.search(r'(?<!non-)\bnegative\b', nearest_domain, re.IGNORECASE):
             verdict = "⚠️ BOUNDARY VIOLATION"
             confident = True
         else:

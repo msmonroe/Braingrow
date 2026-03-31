@@ -45,6 +45,7 @@ class GrowthEngine:
     def ingest_stage(
         self,
         chunks: List[Tuple[str, str]],
+        batch_size: int = 512,
         autosave: bool = False,
         saves_dir: str = 'saves',
     ) -> dict:
@@ -53,7 +54,8 @@ class GrowthEngine:
 
         Parameters
         ----------
-        chunks : list of (text_chunk, domain_label)
+        chunks     : list of (text_chunk, domain_label)
+        batch_size : sentences per encoding batch (GPU memory trade-off)
 
         Returns
         -------
@@ -64,22 +66,27 @@ class GrowthEngine:
             stage_number     : int,
         }
         """
-        self.stage_number += 1
         slots_activated: List[int] = []
         slots_reinforced: List[int] = []
 
         # Batch-encode all texts in one GPU call instead of one-at-a-time
         valid_chunks = [(t, d) for t, d in chunks if t.strip()]
         if not valid_chunks:
-            return self._finalise_stage([], [], autosave, saves_dir)
+            return {
+                "slots_activated": [],
+                "slots_reinforced": [],
+                "dormant_remaining": int((self.vs.activation == 0.0).sum().item()),
+                "stage_number": self.stage_number,
+            }
 
+        self.stage_number += 1
         texts_list = [t for t, _ in valid_chunks]
         domains_list = [d for _, d in valid_chunks]
         total = len(texts_list)
         embeddings_np = self.model.encode(
             texts_list,
             device=_DEVICE,
-            batch_size=512,
+            batch_size=batch_size,
             show_progress_bar=True,
             convert_to_numpy=True,
         )
@@ -170,43 +177,13 @@ class GrowthEngine:
         saves_dir: str = 'saves',
     ) -> dict:
         """
-        High-throughput ingestion for large datasets (e.g. TinyStories).
+        High-throughput alias for ingest_stage with explicit batch_size.
 
-        Encodes all *chunks* in a single batched GPU call instead of one
-        text at a time.  Use this when ingesting thousands of chunks.
-
-        Parameters
-        ----------
-        chunks      : list of (text_chunk, domain_label)
-        batch_size  : sentences per encoding batch (GPU memory trade-off)
-        autosave    : write a .bgstate checkpoint after this stage
-        saves_dir   : directory for autosave files
+        Kept for backwards-compatibility — delegates entirely to ingest_stage.
         """
-        if not chunks:
-            return {"slots_activated": [], "slots_reinforced": [],
-                    "dormant_remaining": int((self.vs.activation == 0).sum().item()),
-                    "stage_number": self.stage_number}
-
-        self.stage_number += 1
-        slots_activated: List[int] = []
-        slots_reinforced: List[int] = []
-
-        texts  = [c[0] for c in chunks if c[0].strip()]
-        labels = [c[1] for c in chunks if c[0].strip()]
-
-        embeddings = self.model.encode(
-            texts,
+        return self.ingest_stage(
+            chunks,
             batch_size=batch_size,
-            show_progress_bar=True,
-            device=_DEVICE,
-            convert_to_numpy=True,
+            autosave=autosave,
+            saves_dir=saves_dir,
         )
-
-        total = len(texts)
-        for i, (emb_np, label, text) in enumerate(zip(embeddings, labels, texts)):
-            if i % 100 == 0:
-                print(f"Progress: {i}/{total} chunks ingested")
-            self._process_embedding(emb_np, text, label, slots_activated, slots_reinforced)
-
-        print(f"Progress: {total}/{total} chunks ingested")
-        return self._finalise_stage(slots_activated, slots_reinforced, autosave, saves_dir)
