@@ -71,17 +71,14 @@ _SCATTER_LAYOUT = dict(
 )
 
 
-def _reduce_2d(vectors: np.ndarray, labels: list | None = None) -> np.ndarray:
-    """Project *vectors* [N, D] to 2D using UMAP when possible, else PCA."""
-    n = len(vectors)
+def _reduce_2d(vectors: np.ndarray) -> np.ndarray:
+    """Project *vectors* [N, D] to 2D using UMAP when possible, else PCA.
 
-    # Cap at 5,000 points before passing to UMAP to keep projection fast
-    if n > 5_000:
-        idx = np.random.choice(n, 5_000, replace=False)
-        vectors = vectors[idx]
-        if labels is not None:
-            labels[:] = [labels[i] for i in idx]
-        n = 5_000
+    Callers are responsible for capping the number of points BEFORE calling
+    this function so that index correspondence is preserved in the returned
+    coords array.
+    """
+    n = len(vectors)
 
     if _UMAP_AVAILABLE and n >= _UMAP_MIN_POINTS:
         try:
@@ -250,8 +247,21 @@ class Visualizer:
             )
             return fig
 
-        # Include query vector in the joint projection so it shares the
-        # same coordinate space as the training embeddings.
+        # Subsample here (before building coords) so that index
+        # correspondence between embeddings/labels/domains and coords rows
+        # is maintained after _reduce_2d.
+        _sampled = False
+        if len(embeddings) > _MAX_ACTIVE_SHOWN:
+            idx = np.random.choice(len(embeddings), _MAX_ACTIVE_SHOWN, replace=False)
+            embeddings = embeddings[idx]
+            labels = [labels[i] for i in idx]
+            domains = [domains[i] for i in idx]
+            _sampled = True
+
+        n_emb = len(embeddings)
+
+        # Append query AFTER sampling so it is always the final row in
+        # coords and _add_query_star can reliably use coords[-1].
         if query_vector is not None:
             q_arr = np.array(query_vector, dtype=np.float32).reshape(1, -1)
             vectors = np.concatenate([embeddings, q_arr], axis=0)
@@ -266,7 +276,6 @@ class Visualizer:
             return fig
 
         coords = _reduce_2d(vectors)
-        n_emb = len(embeddings)
 
         domain_color = _domain_colour_map(domains)
 
@@ -292,7 +301,10 @@ class Visualizer:
         _add_query_star(fig, coords, query_vector)
 
         fig.update_layout(
-            title=f"Dense Model — {n_emb:,} slots (fully occupied, no dormant space)",
+            title=(
+                f"Dense Model — {n_emb:,} slots (fully occupied, no dormant space)"
+                + (" (sampled)" if _sampled else "")
+            ),
             **_SCATTER_LAYOUT,
         )
         return fig

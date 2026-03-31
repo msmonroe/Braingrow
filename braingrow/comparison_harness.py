@@ -123,7 +123,7 @@ class BrainGrowModel:
     answer.
     """
 
-    THRESHOLD: float = 0.25
+    THRESHOLD: float = 0.40
 
     def __init__(self, vector_space: VectorSpace, model: SentenceTransformer) -> None:
         self.vs = vector_space

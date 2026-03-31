@@ -1,10 +1,8 @@
 """
 main.py — BrainGrow Gradio application entry point.
 
-Three-tab UI backed by a single shared VectorSpace instance:
-  Tab 1 — Grow   : staged text ingestion, live UMAP + histogram
-  Tab 2 — Query  : semantic routing through active slots only
-  Tab 3 — Prune  : threshold-based pruning with before/after visualisation
+Thin UI layer: builds the Gradio interface and wires callbacks to the
+BrainGrowSession business-logic class.  No application state lives here.
 
 Run:
     python main.py
@@ -13,470 +11,40 @@ Then open the URL printed to the console.
 
 from __future__ import annotations
 
-import os
-import re
-from datetime import datetime
-from pathlib import Path
 from typing import Tuple
 
-import torch
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"BrainGrow starting on device: {device}")
-if device == 'cpu':
-    print("WARNING: CUDA not available — encoding will be slow")
-
 import gradio as gr
-import numpy as np
-from sentence_transformers import SentenceTransformer
 
-from comparison_harness import (
-    BrainGrowModel,
-    DenseModel,
-    known_queries,
-    partial_queries,
-    unknown_queries,
-)
-from growth_engine import GrowthEngine
-from query_router import QueryRouter
-from utils import encode_unit_numpy
-from vector_space import VectorSpace
-from visualizer import Visualizer
-
-# Optional TinyStories loader (requires 'datasets' package)
-try:
-    from tinystories_loader import (
-        prepare_experiment,
-        STAGE_PRESETS,
-        _check_datasets_available,
-    )
-    _TINYSTORIES_AVAILABLE = True
-except ImportError:
-    _TINYSTORIES_AVAILABLE = False
-    STAGE_PRESETS = {}
-    def _check_datasets_available() -> bool:
-        return False
+from comparison_harness import known_queries
+from session import BrainGrowSession, STAGE_PRESETS
 
 # ---------------------------------------------------------------------------
-# Shared state — one model load for the whole session
+# Single shared session — owns all state and business logic
 # ---------------------------------------------------------------------------
-print("Loading sentence-transformers model (all-MiniLM-L6-v2)…")
-_model = SentenceTransformer("all-MiniLM-L6-v2")
-print("Model loaded.")
-
-vs = VectorSpace()
-engine = GrowthEngine(vs, _model)
-router = QueryRouter(vs, _model)
-viz = Visualizer()
-
-# Tab 4 comparison models — dense_model is rebuilt whenever new data is ingested
-dense_model = DenseModel([], _model)
-braingrow_model = BrainGrowModel(vs, _model)
-
-# Network persistence
-SAVES_DIR = Path(__file__).parent / "saves"
-SAVES_DIR.mkdir(parents=True, exist_ok=True)
-
-# Autosave state — toggled from Tab 5 Autosave checkbox
-_autosave_enabled: bool = False
-
-# Store pre-prune activation snapshot for comparison chart
-_prune_before: np.ndarray | None = None
-
-# ---------------------------------------------------------------------------
-# Tab 1 — Grow helpers
-# ---------------------------------------------------------------------------
-
-def _both_plots():
-    return viz.plot_umap(vs), viz.plot_histogram(vs)
-
-
-def _split_into_chunks(text: str) -> list[str]:
-    """Split multiline / multi-sentence text into individual concept chunks."""
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    if len(lines) >= 2:
-        return lines
-    # Single-line input: split on sentence boundaries
-    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
-    return sentences if sentences else [text.strip()]
-
-
-def ingest(text_input: str, domain_label: str) -> Tuple:
-    global dense_model
-    if not text_input.strip():
-        return (
-            "⚠️  Please enter some text.",
-            viz.plot_umap(vs),
-            viz.plot_histogram(vs),
-        )
-    domain = domain_label.strip() or "default"
-    chunks = [(c, domain) for c in _split_into_chunks(text_input)]
-
-    result = engine.ingest_stage(
-        chunks,
-        autosave=_autosave_enabled,
-        saves_dir=str(SAVES_DIR),
-    )
-    dense_model = DenseModel(engine.all_chunks, _model)
-
-    autosave_note = "  | autosaved ✓" if _autosave_enabled else ""
-    status = (
-        f"Stage {result['stage_number']} complete — "
-        f"{len(result['slots_activated'])} new slots activated, "
-        f"{len(result['slots_reinforced'])} reinforced — "
-        f"{result['dormant_remaining']:,} dormant remaining."
-        + autosave_note
-        + "  |  Click 'Refresh UMAP' to visualize."
-    )
-    return status, None, viz.plot_histogram(vs)
-
-
-def refresh_umap() -> gr.Plot:
-    return viz.plot_umap(vs)
-
-
-def view_diff() -> gr.Plot:
-    diff = engine.get_stage_diff()
-    if not diff["new_slots"]:
-        return viz.plot_umap(vs)
-    return viz.plot_stage_diff(vs, diff["new_slots"])
-
-
-def reset_all() -> Tuple:
-    global dense_model
-    vs.reset()
-    engine.reset()
-    dense_model = DenseModel([], _model)
-    return (
-        "Vector space reset — all slots dormant.  |  Click 'Refresh UMAP' to visualize.",
-    ) + _both_plots()
+session = BrainGrowSession()
 
 
 # ---------------------------------------------------------------------------
-# Tab 5 — Network (Save / Load) helpers
+# UI-layer helpers (Gradio component construction only)
 # ---------------------------------------------------------------------------
 
-def _format_file_size(path: str) -> str:
-    try:
-        size = os.path.getsize(path)
-        if size >= 1_000_000:
-            return f"{size / 1_000_000:.1f} MB"
-        return f"{size / 1_000:.0f} KB"
-    except OSError:
-        return "?"
+def _refresh_saves_dropdown() -> gr.Dropdown:
+    files = session.list_saves()
+    return gr.Dropdown(choices=files, value=files[0] if files else None)
 
 
 def save_network(description: str) -> Tuple[str, gr.Dropdown]:
-    """Save current VectorSpace to SAVES_DIR with a timestamp filename."""
-    if vs.n_active == 0:
-        return "⚠️ Nothing to save — vector space is empty.", _refresh_saves_dropdown()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = SAVES_DIR / f"network_{timestamp}.bgstate"
-    vs.save(str(path), description=description.strip())
-    size_str = _format_file_size(str(path))
-    return (
-        f"✅ Saved: {path.name}  ({size_str})  |  "
-        f"{vs.n_active:,} active slots  |  Stage {vs.stage_number}",
-        _refresh_saves_dropdown(),
-    )
-
-
-def _refresh_saves_dropdown() -> gr.Dropdown:
-    files = sorted(SAVES_DIR.glob("*.bgstate"), reverse=True)
-    choices = [str(f) for f in files]
-    return gr.Dropdown(choices=choices, value=choices[0] if choices else None)
-
-
-def refresh_saves() -> gr.Dropdown:
-    return _refresh_saves_dropdown()
-
-
-def load_network(selected_path: str) -> Tuple[str, gr.Plot, gr.Plot]:
-    """Load a .bgstate file and replace the active VectorSpace state."""
-    global dense_model
-    if not selected_path:
-        return ("⚠️ No save file selected.",) + _both_plots()
-    if not os.path.exists(selected_path):
-        return (f"⚠️ File not found: {selected_path}",) + _both_plots()
-
-    new_vs, meta = VectorSpace.load(selected_path)
-
-    # Copy loaded state into the existing global vs (keeps all object references valid)
-    vs.N           = new_vs.N
-    vs.D           = new_vs.D
-    vs.slots       = new_vs.slots
-    vs.activation  = new_vs.activation
-    vs.slot_labels = new_vs.slot_labels
-    vs.slot_domains = new_vs.slot_domains
-    vs.stage_number = new_vs.stage_number
-    vs._step       = 0
-
-    # Keep engine stage counter in sync; clear history that no longer applies
-    engine.stage_number = new_vs.stage_number
-    engine._stage_history = []
-    engine.all_chunks = []  # chunks cannot be recovered from save file
-    dense_model = DenseModel([], _model)
-
-    domains = sorted(set(vs.slot_domains.values()))
-    desc = meta.get("description") or "—"
-    size_str = _format_file_size(selected_path)
-    status = (
-        f"✅ Loaded: {os.path.basename(selected_path)}  ({size_str})\n"
-        f"Saved at: {meta.get('saved_at', '?')}  |  "
-        f"Description: {desc}\n"
-        f"Active slots: {vs.n_active:,}  |  "
-        f"Total slots: {meta['n_slots']:,}  |  "
-        f"Stage: {vs.stage_number}  |  "
-        f"Domains: {', '.join(domains) if domains else 'none'}"
-    )
-    return (status,) + _both_plots()
+    return session.save_network(description), _refresh_saves_dropdown()
 
 
 def delete_save(selected_path: str) -> Tuple[str, gr.Dropdown]:
-    if not selected_path:
-        return "⚠️ No file selected.", _refresh_saves_dropdown()
-    if not os.path.exists(selected_path):
-        return f"⚠️ File not found: {selected_path}", _refresh_saves_dropdown()
-    os.remove(selected_path)
-    return f"🗑️ Deleted: {os.path.basename(selected_path)}", _refresh_saves_dropdown()
-
-
-def get_network_info() -> str:
-    active   = vs.n_active
-    dormant  = vs.N - active
-    domains  = sorted(set(vs.slot_domains.values()))
-    utilised = f"{active / vs.N * 100:.1f}%"
-    return (
-        f"**Active slots:** {active:,}  |  **Dormant:** {dormant:,}  |  "
-        f"**Utilisation:** {utilised}  |  "
-        f"**Stage:** {vs.stage_number}  |  "
-        f"**Domains ({len(domains)}):** {', '.join(domains) if domains else 'none'}  |  "
-        f"**Total capacity:** {vs.N:,}"
-    )
-
-
-def toggle_autosave(enabled: bool) -> str:
-    global _autosave_enabled
-    _autosave_enabled = enabled
-    return f"Autosave {'enabled ✅ — VectorSpace will be saved after each Ingest Stage.' if enabled else 'disabled.'}"
-
-
-# ---------------------------------------------------------------------------
-# Tab 6 — TinyStories helpers
-# ---------------------------------------------------------------------------
-
-def run_tinystories_stage(preset_name: str, custom_sample: int, custom_chunks: int) -> Tuple:
-    """Load TinyStories data, chunk it, and ingest it into the vector space."""
-    global dense_model
-
-    if not _check_datasets_available():
-        msg = (
-            "⚠️ The **datasets** package is required for TinyStories ingestion.\n"
-            "Install it then restart the app:\n\n"
-            "```\npip install datasets\n```"
-        )
-        return msg, None, None
-
-    # Determine parameters from preset or custom values
-    if preset_name in STAGE_PRESETS:
-        p = STAGE_PRESETS[preset_name]
-        sample_size = p["sample_size"]
-        max_chunks  = p["max_chunks"]
-    else:
-        sample_size = int(custom_sample)
-        max_chunks  = int(custom_chunks)
-
-    status_lines = [f"📥 Loading {sample_size:,} TinyStories snippets…"]
-
-    try:
-        chunks = prepare_experiment(
-            sample_size=sample_size,
-            max_chunks=max_chunks,
-            domain_label="stories",
-        )
-    except Exception as exc:
-        return f"❌ Error loading TinyStories: {exc}", None, None
-
-    status_lines.append(f"⏳ Ingesting {len(chunks):,} chunks (batched encoding)…")
-
-    result = engine.ingest_stage_batched(
-        chunks,
-        batch_size=512,
-        autosave=_autosave_enabled,
-        saves_dir=str(SAVES_DIR),
-    )
-    dense_model = DenseModel(engine.all_chunks, _model)
-
-    autosave_note = "  | autosaved ✓" if _autosave_enabled else ""
-    status_lines.append(
-        f"✅ Stage {result['stage_number']} complete — "
-        f"{len(result['slots_activated']):,} new slots, "
-        f"{len(result['slots_reinforced']):,} reinforced — "
-        f"{result['dormant_remaining']:,} dormant remaining."
-        + autosave_note
-        + "  |  Click 'Refresh UMAP' to visualize."
-    )
-
-    return "\n".join(status_lines), None, viz.plot_histogram(vs)
-
-
-# ---------------------------------------------------------------------------
-# Tab 2 — Query helpers
-# ---------------------------------------------------------------------------
-
-def query(text_input: str, top_k: int) -> Tuple[str, str]:
-    if not text_input.strip():
-        return "⚠️  Please enter a query.", ""
-
-    result = router.route_query(text_input.strip(), top_k=int(top_k))
-    ratio = f"Active: {result['active_count']:,}  |  Dormant: {result['dormant_count']:,}"
-
-    if not result["matches"]:
-        return "No active slots found — ingest some text first.", ratio
-
-    if result["boundary_violation"]:
-        return (
-            f"🚫 **BOUNDARY VIOLATION** — concept exists but combination is invalid  \n"
-            f"Nearest domain: `{result['nearest_domain']}`",
-            ratio,
-        )
-
-    lines = []
-    for m in result["matches"]:
-        lines.append(
-            f"**[{m['domain']}]** {m['label']}  \n"
-            f"  similarity: `{m['similarity']:.4f}`  |  "
-            f"activation: `{m['activation']:.4f}`"
-        )
-    return "\n\n---\n\n".join(lines), ratio
-
-
-# ---------------------------------------------------------------------------
-# Tab 3 — Prune helpers
-# ---------------------------------------------------------------------------
-
-def run_prune(threshold: float) -> Tuple[str, gr.Plot]:
-    global _prune_before
-    _prune_before = vs.activation.detach().numpy().copy()
-    result = vs.prune(threshold=float(threshold))
-    after = vs.activation.detach().numpy().copy()
-    fig = viz.plot_prune_comparison(_prune_before, after)
-    status = (
-        f"Pruning complete — threshold: {threshold:.2f}  |  "
-        f"Pruned: {result['pruned_count']:,} slots  |  "
-        f"Active before → after: {result['before_active']:,} → {result['after_active']:,}"
-    )
-    return status, fig
-
-
-# ---------------------------------------------------------------------------
-# Tab 4 — Compare helpers
-# ---------------------------------------------------------------------------
-
-_QUERY_MAP = {
-    "Known": known_queries,
-    "Partial": partial_queries,
-    "Unknown": unknown_queries,
-}
+    return session.delete_save(selected_path), _refresh_saves_dropdown()
 
 
 def get_query_choices(query_type: str) -> gr.Dropdown:
-    """Return a refreshed Dropdown matching the selected query type."""
-    choices = _QUERY_MAP.get(query_type, [])
+    choices = session.get_query_choices(query_type)
     return gr.Dropdown(choices=choices, value=choices[0] if choices else None)
 
-
-def run_comparison_tab(query_type: str, selected_query: str) -> Tuple:
-    if not selected_query:
-        return "<p>⚠️ Select a query first.</p>", None, None, "No query selected."
-
-    if dense_model.embeddings.shape[0] == 0:
-        msg = (
-            "<p>⚠️ No data ingested yet. "
-            "Go to <b>Tab 1 — Grow</b> and ingest some text first.</p>"
-        )
-        return msg, None, None, "No data in vector space."
-
-    d_result = dense_model.query(selected_query)
-    b_result = braingrow_model.query(selected_query)
-
-    # Encode query and build unit vector for UMAP overlay
-    q_np = encode_unit_numpy(_model, selected_query)
-
-    # Verdict logic:
-    #   Dense on Unknown queries → HALLUCINATED (red)
-    #   BrainGrow uses verdict field from harness (honest / boundary / confident)
-    is_unknown = query_type == "Unknown"
-    d_hallucinated = is_unknown and d_result["confident"]
-    b_verdict = b_result["verdict"]
-    b_is_honest = b_verdict == "HONEST (uncertain)"
-    b_is_violation = "BOUNDARY VIOLATION" in b_verdict
-
-    d_row_bg = "rgba(255,60,60,0.22)" if d_hallucinated else "rgba(200,200,200,0.06)"
-    b_row_bg = (
-        "rgba(255,180,0,0.22)" if b_is_violation
-        else "rgba(60,200,100,0.22)" if b_is_honest
-        else "rgba(200,200,200,0.06)"
-    )
-    d_verdict_html = (
-        '<span style="color:#ff6b6b;font-weight:bold;">⚠ HALLUCINATED</span>'
-        if d_hallucinated
-        else '<span style="color:#aaa;">✓ Confident</span>'
-    )
-    b_verdict_html = (
-        '<span style="color:#ffd43b;font-weight:bold;">⚠️ BOUNDARY VIOLATION</span>'
-        if b_is_violation
-        else '<span style="color:#69db7c;font-weight:bold;">✓ HONEST (uncertain)</span>'
-        if b_is_honest
-        else '<span style="color:#aaa;">✓ Confident</span>'
-    )
-
-    html = f"""
-<table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:13px;">
-  <thead>
-    <tr style="border-bottom:2px solid #555;">
-      <th style="padding:8px 12px;text-align:left;">Model</th>
-      <th style="padding:8px 12px;text-align:left;">Nearest Concept</th>
-      <th style="padding:8px 12px;text-align:left;">Domain</th>
-      <th style="padding:8px 12px;text-align:left;">Similarity</th>
-      <th style="padding:8px 12px;text-align:left;">Verdict</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr style="background:{d_row_bg};">
-      <td style="padding:8px 12px;font-weight:bold;">Dense</td>
-      <td style="padding:8px 12px;">{d_result['label'] or '—'}</td>
-      <td style="padding:8px 12px;">{d_result['domain'] or '—'}</td>
-      <td style="padding:8px 12px;">{d_result['similarity']:.4f}</td>
-      <td style="padding:8px 12px;">{d_verdict_html}</td>
-    </tr>
-    <tr style="background:{b_row_bg};">
-      <td style="padding:8px 12px;font-weight:bold;">BrainGrow</td>
-      <td style="padding:8px 12px;">{b_result['label'] or '—'}</td>
-      <td style="padding:8px 12px;">{b_result['domain'] or '—'}</td>
-      <td style="padding:8px 12px;">{b_result['similarity']:.4f}</td>
-      <td style="padding:8px 12px;">{b_verdict_html}</td>
-    </tr>
-  </tbody>
-</table>
-"""
-
-    dense_fig = viz.plot_dense_umap(
-        dense_model.embeddings, dense_model.labels, dense_model.domains, q_np
-    )
-    bg_fig = viz.plot_umap(vs, q_np)
-
-    status = (
-        f"Query: '{selected_query[:60]}'"
-        f"  |  Dense sim: {d_result['similarity']:.4f}"
-        f"  |  BrainGrow sim: {b_result['similarity']:.4f}"
-    )
-    return html, dense_fig, bg_fig, status
-
-
-# ---------------------------------------------------------------------------
-# Gradio UI
-# ---------------------------------------------------------------------------
 
 _HEADER_MD = """
 # 🧠 BrainGrow
@@ -592,22 +160,22 @@ def build_ui() -> gr.Blocks:
                         grow_hist = gr.Plot(label="Activation Histogram")
 
                 grow_btn.click(
-                    fn=ingest,
+                    fn=session.ingest,
                     inputs=[grow_text, grow_domain],
                     outputs=[grow_status, grow_umap, grow_hist],
                 )
                 diff_btn.click(
-                    fn=view_diff,
+                    fn=session.view_diff,
                     inputs=[],
                     outputs=[grow_umap],
                 )
                 umap_btn.click(
-                    fn=refresh_umap,
+                    fn=session.refresh_umap,
                     inputs=[],
                     outputs=[grow_umap],
                 )
                 reset_btn.click(
-                    fn=reset_all,
+                    fn=session.reset_all,
                     inputs=[],
                     outputs=[grow_status, grow_umap, grow_hist],
                 )
@@ -637,7 +205,7 @@ def build_ui() -> gr.Blocks:
                         query_results = gr.Markdown(label="Matched Concepts")
 
                 query_btn.click(
-                    fn=query,
+                    fn=session.query,
                     inputs=[query_text, query_k],
                     outputs=[query_results, query_ratio],
                 )
@@ -662,7 +230,7 @@ def build_ui() -> gr.Blocks:
                         prune_fig = gr.Plot(label="Before / After Comparison")
 
                 prune_btn.click(
-                    fn=run_prune,
+                    fn=session.run_prune,
                     inputs=[prune_slider],
                     outputs=[prune_status, prune_fig],
                 )
@@ -705,7 +273,7 @@ def build_ui() -> gr.Blocks:
                     outputs=[compare_query],
                 )
                 compare_btn.click(
-                    fn=run_comparison_tab,
+                    fn=session.run_comparison_tab,
                     inputs=[compare_type, compare_query],
                     outputs=[
                         compare_table,
@@ -742,7 +310,7 @@ def build_ui() -> gr.Blocks:
 
                     with gr.Column(scale=1, min_width=280):
                         net_saves_dropdown = gr.Dropdown(
-                            choices=[str(f) for f in sorted(SAVES_DIR.glob("*.bgstate"), reverse=True)],
+                            choices=session.list_saves(),
                             label="Saved Networks (.bgstate)",
                             interactive=True,
                         )
@@ -768,12 +336,12 @@ def build_ui() -> gr.Blocks:
                     outputs=[net_save_status, net_saves_dropdown],
                 )
                 net_refresh_btn.click(
-                    fn=refresh_saves,
+                    fn=_refresh_saves_dropdown,
                     inputs=[],
                     outputs=[net_saves_dropdown],
                 )
                 net_load_btn.click(
-                    fn=load_network,
+                    fn=session.load_network,
                     inputs=[net_saves_dropdown],
                     outputs=[net_load_status, net_umap, net_hist],
                 )
@@ -783,12 +351,12 @@ def build_ui() -> gr.Blocks:
                     outputs=[net_load_status, net_saves_dropdown],
                 )
                 net_autosave.change(
-                    fn=toggle_autosave,
+                    fn=session.toggle_autosave,
                     inputs=[net_autosave],
                     outputs=[net_autosave_status],
                 )
                 net_info_btn.click(
-                    fn=get_network_info,
+                    fn=session.get_network_info,
                     inputs=[],
                     outputs=[net_info_md],
                 )
@@ -831,12 +399,12 @@ def build_ui() -> gr.Blocks:
                         ts_hist = gr.Plot(label="Activation Histogram")
 
                 ts_run_btn.click(
-                    fn=run_tinystories_stage,
+                    fn=session.run_tinystories_stage,
                     inputs=[ts_preset, ts_custom_sample, ts_custom_chunks],
                     outputs=[ts_status, ts_umap, ts_hist],
                 )
                 ts_umap_btn.click(
-                    fn=refresh_umap,
+                    fn=session.refresh_umap,
                     inputs=[],
                     outputs=[ts_umap],
                 )
