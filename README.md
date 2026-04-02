@@ -1,7 +1,7 @@
 # BrainGrow
 
 **Developmental AI Architecture — Proof of Concept**  
-Vektas Solutions · March 2026 · Author: Matthew Monroe
+Vektas Solutions · April 2026 · Author: Matthew Monroe
 
 ---
 
@@ -18,7 +18,7 @@ Inspired by human neurodevelopment — where an infant is born with *more* synap
 ## Architecture
 
 ```
-[ Pre-allocate 10,000 vector slots — large, mostly empty ]
+[ Pre-allocate 200,000 vector slots — large, mostly empty ]
           ↓
 [ Stage 1: Feed Domain A text → vectors activate in sparse regions ]
           ↓
@@ -31,13 +31,16 @@ Inspired by human neurodevelopment — where an infant is born with *more* synap
 [ Expansion: new domain claims previously dormant space ]
 ```
 
-### The Three Tabs
+### The Six Tabs
 
 | Tab | What It Demonstrates |
 |-----|----------------------|
-| **Grow** | Pre-allocated vector space. Knowledge grows into it progressively. Active vs. dormant vectors visualised in real time. |
+| **Grow** | Pre-allocated vector space. Knowledge grows into it progressively. Active vs. dormant vectors visualised in real time via UMAP / PCA. Includes Stage Diff and Refresh UMAP controls. |
 | **Query** | Routing through active vectors only. New domain knowledge grows into previously dormant space without overwriting existing knowledge. |
 | **Prune** | Use-dependent pruning pass. Dormant vectors decay. Active vectors strengthen. Before/after comparison visualised. |
+| **Compare** | Hallucination demo. Runs identical queries against a saturated DenseModel and BrainGrow side-by-side. Demonstrates that hallucination is an architectural property — not a scale or data-quantity problem. |
+| **Network** | Save / load complete network state as `.bgstate` files. Autosave after every Ingest Stage (essential for long TinyStories runs). |
+| **TinyStories** | Scale test against the `roneneldan/TinyStories` corpus — 100,000 real-world story snippets, 200,000 slot space, unlabeled developmental growth. Three progressive stages (smoke test → small scale → full scale). |
 
 ---
 
@@ -45,13 +48,19 @@ Inspired by human neurodevelopment — where an infant is born with *more* synap
 
 ```
 braingrow/
-├── main.py              # Gradio app entry point (3-tab UI)
-├── vector_space.py      # Pre-allocation, activation tracking, pruning
-├── growth_engine.py     # Staged ingestion, embedding, slot assignment
-├── query_router.py      # Routes queries through active vectors only
-├── visualizer.py        # UMAP projection & Plotly charts
-├── requirements.txt     # Python dependencies
-└── .gitignore
+├── main.py                  # Gradio app entry point (6-tab UI)
+├── session.py               # BrainGrowSession — all business logic, no state in main.py
+├── vector_space.py          # Pre-allocation, activation tracking, pruning (200k slots)
+├── growth_engine.py         # Staged ingestion, batch encoding, slot assignment
+├── query_router.py          # Routes queries through active vectors only
+├── comparison_harness.py    # DenseModel vs BrainGrow hallucination comparison (Tab 4)
+├── tinystories_loader.py    # TinyStories data pipeline (Tab 6, requires datasets)
+├── visualizer.py            # UMAP projection & Plotly charts
+├── instrumentation.py       # Optional timing / error tracing (BRAINGROW_TRACE=1)
+├── utils.py                 # Shared unit-normalised encoding utilities
+├── requirements.txt         # Core Python dependencies
+├── saves/                   # .bgstate network snapshots (autosave target)
+└── tests/                   # Pytest suite (one test file per module)
 ```
 
 ---
@@ -66,6 +75,7 @@ braingrow/
 - UMAP-learn
 - NumPy
 - scikit-learn
+- datasets *(optional — required for Tab 6 TinyStories only)*
 
 ---
 
@@ -79,17 +89,31 @@ cd braingrow
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install core dependencies
 pip install -r requirements.txt
 
 # PyTorch (CPU build — sufficient for the POC):
 pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Optional: TinyStories scale experiment (Tab 6)
+pip install datasets
 
 # Launch
 python main.py
 ```
 
 Then open the URL printed in the console (default: `http://localhost:7860`).
+
+### Tracing / Instrumentation
+
+To enable verbose timing and error traces during development:
+
+```bash
+BRAINGROW_TRACE=1 python main.py
+
+# Redirect trace output to a file:
+BRAINGROW_TRACE=1 BRAINGROW_LOG=braingrow.log python main.py
+```
 
 ---
 
@@ -99,13 +123,16 @@ Follow these steps to see the developmental dynamics in action:
 
 | Step | Action | Expected Observation |
 |------|--------|----------------------|
-| 1 | **Initialize** | Launch app. UMAP shows 10,000 grey dormant slots. |
-| 2 | **Stage 1 — Science** | Ingest 10 science chunks. UMAP lights up in a sparse cluster. Histogram shows ~0.1% active. |
-| 3 | **Stage 2 — History** | Ingest 10 history chunks. A new cluster appears in a *different* region. Science cluster unchanged. |
+| 1 | **Initialize** | Launch app. UMAP shows 200,000 grey dormant slots. |
+| 2 | **Stage 1 — Science** | Ingest science chunks. UMAP lights up in a sparse cluster. Histogram shows a tiny active fraction. |
+| 3 | **Stage 2 — History** | Ingest history chunks. A new cluster appears in a *different* region. Science cluster unchanged. |
 | 4 | **Query — Science** | Ask a science question. Routing highlights the science cluster only. |
 | 5 | **Query — History** | Ask a history question. Routing highlights the history cluster. No cross-contamination. |
 | 6 | **Prune** | Run pruning at threshold 0.2. Low-activation slots grey out. Core concepts survive. |
 | 7 | **Expand** | Ingest Stage 3 (e.g. cooking). Grows into space freed by pruning. |
+| 8 | **Compare** | Switch to Tab 4. Run Known / Partial / Unknown queries. BrainGrow returns honest uncertainty; DenseModel hallucinates. |
+| 9 | **Save** | Switch to Tab 5. Save the network state to `saves/` before lengthy experiments. |
+| 10 | **TinyStories** | Switch to Tab 6. Run Stage A (smoke test, ~1k chunks), then Stage B (10k), then Stage C (full scale). Enable Autosave first. |
 
 ---
 
@@ -117,7 +144,32 @@ The POC is considered successful when it demonstrates:
 - **Non-destructive expansion** — adding a new domain does not shift or corrupt previously activated regions.
 - **Routing isolation** — queries correctly activate domain-relevant slots and ignore unrelated ones.
 - **Pruning recovery** — after a pruning pass, a new domain successfully claims reclaimed dormant space.
+- **Honest uncertainty** — BrainGrow returns low-confidence or no results for unknown-concept queries while DenseModel confidently hallucinates.
 - **Visual legibility** — a non-technical observer can watch the space grow and intuitively understand what is happening.
+- **Scale durability** — the TinyStories pipeline ingests 100k story chunks across 200,000 slots without slot exhaustion or UMAP collapse.
+
+---
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| 200,000 pre-allocated slots | Sufficient headroom for TinyStories full-scale run without live reallocation. |
+| `all-MiniLM-L6-v2` (384-dim) | Compact, fast, well-calibrated for semantic similarity at CPU speeds. |
+| Reinforce threshold 0.92 | Near-duplicate chunks strengthen existing slots rather than wasting dormant space. |
+| Thread-safe `RLock` | Gradio's concurrent callbacks can write without race conditions. |
+| `BrainGrowSession` business-logic class | All state and logic isolated from Gradio; trivially testable and replaceable. |
+| `.bgstate` persistence | Full snapshot (embeddings + activations + metadata) prevents data loss on long runs. |
+
+---
+
+## Running Tests
+
+```bash
+pytest tests/
+```
+
+The test suite covers all core modules: vector space, growth engine, query router, comparison harness, session, visualizer, instrumentation, utilities, and the TinyStories loader.
 
 ---
 
