@@ -72,18 +72,19 @@ class DenseModel:
         self.model = model
         self.labels: List[str] = []
         self.domains: List[str] = []
-        raw: List[np.ndarray] = []
 
-        for text, domain in chunks:
-            if not text.strip():
-                continue
-            raw.append(encode_unit_numpy(model, text))
-            self.labels.append(text[:60].strip())
-            self.domains.append(domain)
-
-        self.embeddings: np.ndarray = (
-            np.stack(raw, axis=0) if raw else np.empty((0, 384), dtype=np.float32)
-        )
+        valid = [(t, d) for t, d in chunks if t.strip()]
+        if valid:
+            texts = [t for t, _ in valid]
+            self.labels = [t[:60].strip() for t in texts]
+            self.domains = [d for _, d in valid]
+            embs_raw = model.encode(
+                texts, device=_DEVICE, batch_size=512, convert_to_numpy=True,
+            )
+            norms = np.linalg.norm(embs_raw, axis=1, keepdims=True)
+            self.embeddings: np.ndarray = (embs_raw / (norms + 1e-8)).astype(np.float32)
+        else:
+            self.embeddings: np.ndarray = np.empty((0, 384), dtype=np.float32)
 
     def query(self, text: str) -> dict:
         """
@@ -112,7 +113,7 @@ class DenseModel:
             "confident": True,  # always confident — hallucination mechanism
         }
 
-    def extend(self, new_chunks: List[Tuple[str, str]]) -> None:
+    def add_chunks(self, new_chunks: List[Tuple[str, str]]) -> None:
         """
         Encode and append *new_chunks* without re-encoding historical data.
 
@@ -123,13 +124,13 @@ class DenseModel:
         if not valid:
             return
         texts = [t for t, _ in valid]
-        embs_raw = self.model.encode(texts, device=_DEVICE, convert_to_numpy=True)
+        embs_raw = self.model.encode(texts, device=_DEVICE, batch_size=512, convert_to_numpy=True)
         norms = np.linalg.norm(embs_raw, axis=1, keepdims=True)
         new_embs = (embs_raw / (norms + 1e-8)).astype(np.float32)
         new_labels = [t[:60].strip() for t in texts]
         new_domains = [d for _, d in valid]
         self.embeddings = (
-            np.concatenate([self.embeddings, new_embs], axis=0)
+            np.vstack([self.embeddings, new_embs])
             if self.embeddings.shape[0] > 0
             else new_embs
         )
@@ -200,7 +201,7 @@ class BrainGrowModel:
         if best_sim < self.THRESHOLD:
             verdict = "HONEST (uncertain)"
             confident = False
-        elif re.search(r'(?<!non-)\bnegative\b', nearest_domain, re.IGNORECASE):
+        elif nearest_domain in self.vs.negative_domains:
             verdict = "⚠️ BOUNDARY VIOLATION"
             confident = True
         else:

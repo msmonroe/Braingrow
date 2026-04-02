@@ -13,6 +13,7 @@ N increased to 200,000 for TinyStories scale experiment.
 from __future__ import annotations
 import os
 import threading
+from collections import deque
 from datetime import datetime
 from typing import Dict, List
 
@@ -25,9 +26,6 @@ class VectorSpace:
 
     REINFORCE_STEP: float = 0.10   # activation gain per query hit
     DECAY_RATE: float = 0.005      # activation loss per decay() call
-    # Max dormant slots scanned per assign_slot() — approximate nearest-dormant
-    # search keeps CPU cost bounded when most of the 200k slots are dormant.
-    _MAX_DORMANT_SCAN: int = 10_000
 
     # --------------------------------------------------------------------------
     def __init__(
@@ -55,6 +53,10 @@ class VectorSpace:
         self.stage_number: int = 0  # synced from GrowthEngine on each stage
         # Protects all mutations so Gradio concurrent callbacks don't race.
         self._lock: threading.RLock = threading.RLock()
+        # O(1) dormant-slot allocation — deque is replenished by prune()
+        self.dormant_queue: deque = deque(range(self.N))
+        # Domains registered as negative (boundary-violation detection)
+        self.negative_domains: set = set()
 
     # --------------------------------------------------------------------------
     # Slot assignment
@@ -79,27 +81,14 @@ class VectorSpace:
         }
         """
         with self._lock:
-            dormant_mask: torch.Tensor = self.activation == 0.0
-
-            # Fallback: if the space is nearly full, reuse the least-active slot
-            if not dormant_mask.any():
-                dormant_mask = self.activation <= self.activation[self.activation > 0].min()
-
-            dormant_indices = dormant_mask.nonzero(as_tuple=True)[0]
-
-            # Limit scan to _MAX_DORMANT_SCAN candidates so CPU cost stays
-            # bounded (200k × 384 multiply per call is ~300 ms on CPU).
-            if dormant_indices.shape[0] > self._MAX_DORMANT_SCAN:
-                perm = torch.randperm(dormant_indices.shape[0])[:self._MAX_DORMANT_SCAN]
-                dormant_indices = dormant_indices[perm]
-
-            dormant_vecs = self.slots[dormant_indices]  # [M, D]
-
             emb_unit = embedding / (embedding.norm() + 1e-8)  # unit vector
-            sims = dormant_vecs @ emb_unit                    # [M]
 
-            best_local = int(sims.argmax().item())
-            slot_idx = int(dormant_indices[best_local].item())
+            if self.dormant_queue:
+                # O(1) — take next pre-tracked dormant slot from the front
+                slot_idx = int(self.dormant_queue.popleft())
+            else:
+                # Fallback: reuse the least-active slot when queue is exhausted
+                slot_idx = int(self.activation.argmin().item())
 
             activation_before = float(self.activation[slot_idx].item())
             self.slots[slot_idx] = emb_unit
@@ -154,6 +143,7 @@ class VectorSpace:
                 for idx in pruned_indices:
                     self.slot_labels.pop(idx, None)
                     self.slot_domains.pop(idx, None)
+                    self.dormant_queue.append(idx)  # slot is dormant again
 
             after_active = int((self.activation > 0).sum().item())
             return {
@@ -165,6 +155,11 @@ class VectorSpace:
     # --------------------------------------------------------------------------
     # Utility
     # --------------------------------------------------------------------------
+    def register_negative_domain(self, label: str) -> None:
+        """Mark *label* as a negative domain (triggers boundary violation on query)."""
+        with self._lock:
+            self.negative_domains.add(label)
+
     def get_active_mask(self) -> torch.Tensor:
         """Boolean tensor [N] — True for active slots."""
         return self.activation > 0.0
@@ -192,6 +187,8 @@ class VectorSpace:
             self.slot_domains = {}
             self._step = 0
             self.stage_number = 0
+            self.dormant_queue = deque(range(self.N))
+            self.negative_domains = set()
 
     # --------------------------------------------------------------------------
     # Persistence — save / load / autosave
@@ -206,12 +203,13 @@ class VectorSpace:
 
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         state = {
-            'slots':           self.slots,
-            'activation':      self.activation,
-            'slot_labels':     self.slot_labels,
-            'n_active':        self.n_active,
-            'stage_number':    self.stage_number,
-            'domain_registry': self.domain_registry,
+            'slots':            self.slots,
+            'activation':       self.activation,
+            'slot_labels':      self.slot_labels,
+            'n_active':         self.n_active,
+            'stage_number':     self.stage_number,
+            'domain_registry':  self.domain_registry,
+            'negative_domains': self.negative_domains,
             'metadata': {
                 'saved_at':    datetime.now().isoformat(),
                 'n_slots':     self.slots.shape[0],
@@ -234,9 +232,10 @@ class VectorSpace:
         """
         if not os.path.isfile(path):
             raise FileNotFoundError(f"No such .bgstate file: {path}")
-        # weights_only=False is required because the state dict contains Python
-        # objects (dicts, strings). Only load .bgstate files produced by this
-        # application — never load files from untrusted external sources.
+        # weights_only=False required to deserialize metadata dicts
+        # and non-tensor state (slot_labels, domain_registry, etc.)
+        # Safe for .bgstate files created by this system on this machine.
+        # Do not load .bgstate files received from untrusted external sources.
         state = torch.load(path, map_location='cpu', weights_only=False)
         meta = state['metadata']
 
@@ -255,6 +254,14 @@ class VectorSpace:
         for domain, indices in domain_registry.items():
             for idx in indices:
                 vs.slot_domains[int(idx)] = domain
+
+        # Restore negative-domain registry
+        vs.negative_domains = set(state.get('negative_domains', set()))
+
+        # Rebuild dormant_queue from activation (slots with activation == 0)
+        vs.dormant_queue = deque(
+            i for i, v in enumerate(vs.activation.tolist()) if v == 0.0
+        )
 
         return vs, meta
 

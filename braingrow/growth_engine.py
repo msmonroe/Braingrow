@@ -45,7 +45,7 @@ class GrowthEngine:
     def ingest_stage(
         self,
         chunks: List[Tuple[str, str]],
-        batch_size: int = 512,
+        batch_size: int = 1,
         autosave: bool = False,
         saves_dir: str = 'saves',
     ) -> dict:
@@ -129,22 +129,25 @@ class GrowthEngine:
         """Reinforce an existing near-duplicate slot or grow into a dormant one."""
         self.all_chunks.append((text, domain))
         embedding = torch.tensor(emb_np, dtype=torch.float32)
-        emb_unit = embedding / (embedding.norm() + 1e-8)
+        emb_unit = embedding / (embedding.norm() + 1e-8)  # pure local compute
 
-        active_mask = self.vs.get_active_mask()
-        if active_mask.any():
-            active_indices = active_mask.nonzero(as_tuple=True)[0]
-            active_vecs = self.vs.slots[active_indices]
-            sims = active_vecs @ emb_unit
-            max_sim = float(sims.max().item())
-            if max_sim >= self.REINFORCE_THRESHOLD:
-                best_global = int(active_indices[sims.argmax().item()].item())
-                self.vs.reinforce(best_global)
-                slots_reinforced.append(best_global)
-                return
+        with self.vs._lock:  # hold lock across the full read → decision → write
+            active_mask = self.vs.get_active_mask()
+            if active_mask.any():
+                active_indices = active_mask.nonzero(as_tuple=True)[0]
+                active_vecs = self.vs.slots[active_indices]
+                sims = active_vecs @ emb_unit
+                max_sim = float(sims.max().item())
+                if max_sim >= self.REINFORCE_THRESHOLD:
+                    best_global = int(active_indices[sims.argmax().item()].item())
+                    self.vs.reinforce(best_global)  # RLock: safe to re-enter
+                    slots_reinforced.append(best_global)
+                    return
 
-        result = self.vs.assign_slot(emb_unit, label=text[:60].strip(), domain=domain)
-        slots_activated.append(result["slot_idx"])
+            result = self.vs.assign_slot(emb_unit, label=text[:60].strip(), domain=domain)
+            slots_activated.append(result["slot_idx"])
+            if 'negative' in domain.lower():
+                self.vs.register_negative_domain(domain)
 
     def _finalise_stage(
         self,
@@ -154,7 +157,9 @@ class GrowthEngine:
         saves_dir: str,
     ) -> dict:
         """Build the stage result dict, update history, sync state, and autosave."""
-        dormant_remaining = int((self.vs.activation == 0.0).sum().item())
+        with self.vs._lock:
+            dormant_remaining = int((self.vs.activation == 0.0).sum().item())
+            self.vs.stage_number = self.stage_number
         stage_result = {
             "slots_activated": slots_activated,
             "slots_reinforced": slots_reinforced,
@@ -162,7 +167,6 @@ class GrowthEngine:
             "stage_number": self.stage_number,
         }
         self._stage_history.append({"stage": self.stage_number, "slots": slots_activated[:]})
-        self.vs.stage_number = self.stage_number
         if autosave:
             path = self.vs.autosave(saves_dir)
             print(f'Autosaved to {path}')

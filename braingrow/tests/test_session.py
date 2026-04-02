@@ -311,6 +311,29 @@ class TestNetworkSaveLoad:
         assert "✅" in status
         assert tiny_session.vs.n_active == n_before
 
+    def test_load_roundtrip_restores_dense_model(self, tiny_session):
+        tiny_session.ingest("Data for dense model reload test.", "science")
+        n_labels = len(tiny_session.dense_model.labels)
+        tiny_session.save_network("dense roundtrip")
+
+        saves = list(tiny_session.SAVES_DIR.glob("*.bgstate"))
+        tiny_session.reset_all()
+        assert len(tiny_session.dense_model.labels) == 0
+
+        tiny_session.load_network(str(saves[0]))
+        assert len(tiny_session.dense_model.labels) == n_labels
+
+    def test_load_roundtrip_restores_negative_domains(self, tiny_session):
+        tiny_session.ingest("Toxic mixing is dangerous.", "cooking-negative")
+        tiny_session.save_network("negative domains roundtrip")
+
+        saves = list(tiny_session.SAVES_DIR.glob("*.bgstate"))
+        tiny_session.reset_all()
+        assert len(tiny_session.vs.negative_domains) == 0
+
+        tiny_session.load_network(str(saves[0]))
+        assert "cooking-negative" in tiny_session.vs.negative_domains
+
     def test_load_nonexistent_file_returns_warning(self, tiny_session):
         status, _, _ = tiny_session.load_network("/nonexistent/path/file.bgstate")
         assert "⚠️" in status

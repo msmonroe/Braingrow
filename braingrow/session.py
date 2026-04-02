@@ -134,7 +134,7 @@ class BrainGrowSession:
             autosave=self.autosave_enabled,
             saves_dir=str(self.SAVES_DIR),
         )
-        self.dense_model.extend(self.engine.all_chunks[n_before:])
+        self.dense_model.add_chunks(self.engine.all_chunks[n_before:])
 
         log_event(
             "ingest done: stage=%d  activated=%d  reinforced=%d  dormant=%d",
@@ -214,9 +214,10 @@ class BrainGrowSession:
     @traced
     def run_prune(self, threshold: float) -> Tuple:
         log_event("run_prune: threshold=%.2f  active_before=%d", threshold, self.vs.n_active)
-        self._prune_before = self.vs.activation.detach().numpy().copy()
-        result = self.vs.prune(threshold=float(threshold))
-        after = self.vs.activation.detach().numpy().copy()
+        with self.vs._lock:  # hold lock so before/prune/after are one atomic snapshot
+            self._prune_before = self.vs.activation.detach().numpy().copy()
+            result = self.vs.prune(threshold=float(threshold))  # RLock: safe to re-enter
+            after = self.vs.activation.detach().numpy().copy()
         fig = self.viz.plot_prune_comparison(self._prune_before, after)
         log_event(
             "run_prune done: pruned=%d  active_after=%d",
@@ -352,14 +353,16 @@ class BrainGrowSession:
 
         # Copy loaded state into the existing vs instance to keep all
         # downstream object references (engine, router, etc.) valid.
-        self.vs.N            = new_vs.N
-        self.vs.D            = new_vs.D
-        self.vs.slots        = new_vs.slots
-        self.vs.activation   = new_vs.activation
-        self.vs.slot_labels  = new_vs.slot_labels
-        self.vs.slot_domains = new_vs.slot_domains
-        self.vs.stage_number = new_vs.stage_number
-        self.vs._step        = 0
+        self.vs.N               = new_vs.N
+        self.vs.D               = new_vs.D
+        self.vs.slots           = new_vs.slots
+        self.vs.activation      = new_vs.activation
+        self.vs.slot_labels     = new_vs.slot_labels
+        self.vs.slot_domains    = new_vs.slot_domains
+        self.vs.stage_number    = new_vs.stage_number
+        self.vs._step           = 0
+        self.vs.dormant_queue   = new_vs.dormant_queue
+        self.vs.negative_domains = new_vs.negative_domains
 
         log_event(
             "load_network: %s  active=%d  stage=%d",
@@ -367,8 +370,16 @@ class BrainGrowSession:
         )
         self.engine.stage_number   = new_vs.stage_number
         self.engine._stage_history = []
-        self.engine.all_chunks     = []
-        self.dense_model = DenseModel([], self._model)
+
+        # Reconstruct all_chunks from saved slot metadata so DenseModel is
+        # usable immediately after load (labels are 60-char substrings of the
+        # original text — sufficient for the Tab 4 hallucination comparison).
+        reconstructed_chunks = [
+            (new_vs.slot_labels[idx], new_vs.slot_domains.get(idx, "unknown"))
+            for idx in sorted(new_vs.slot_labels.keys())
+        ]
+        self.engine.all_chunks = reconstructed_chunks
+        self.dense_model = DenseModel(reconstructed_chunks, self._model)
 
         domains  = sorted(set(self.vs.slot_domains.values()))
         desc     = meta.get("description") or "—"
@@ -465,7 +476,7 @@ class BrainGrowSession:
             autosave=self.autosave_enabled,
             saves_dir=str(self.SAVES_DIR),
         )
-        self.dense_model.extend(self.engine.all_chunks[n_before:])
+        self.dense_model.add_chunks(self.engine.all_chunks[n_before:])
 
         autosave_note = "  | autosaved ✓" if self.autosave_enabled else ""
         status_lines.append(

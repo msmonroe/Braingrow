@@ -8,7 +8,6 @@ reinforced, raising its activation score.
 """
 
 from __future__ import annotations
-import re
 from typing import List, Union
 
 import torch
@@ -54,47 +53,43 @@ class QueryRouter:
         """
         emb_unit = encode_unit_torch(self.model, text)
 
-        active_mask = self.vs.get_active_mask()
-        active_count = int(active_mask.sum().item())
-        dormant_count = int((~active_mask).sum().item())
+        with self.vs._lock:
+            active_mask = self.vs.get_active_mask()
+            active_count = int(active_mask.sum().item())
+            dormant_count = int((~active_mask).sum().item())
 
-        if active_count == 0:
-            return {
-                "matches": [],
-                "active_count": 0,
-                "dormant_count": dormant_count,
-                "query_embedding": emb_unit,
-                "nearest_domain": "",
-                "boundary_violation": False,
-            }
+            if active_count == 0:
+                return {
+                    "matches": [],
+                    "active_count": 0,
+                    "dormant_count": dormant_count,
+                    "query_embedding": emb_unit,
+                    "nearest_domain": "",
+                    "boundary_violation": False,
+                }
 
-        active_indices = active_mask.nonzero(as_tuple=True)[0]
-        active_vecs = self.vs.slots[active_indices]  # [A, D]
+            active_indices = active_mask.nonzero(as_tuple=True)[0]
+            active_vecs = self.vs.slots[active_indices]  # [A, D]
 
-        sims = active_vecs @ emb_unit  # [A]
+            sims = active_vecs @ emb_unit  # [A]
 
-        k = min(top_k, active_count)
-        top_vals, top_local = sims.topk(k)
+            k = min(top_k, active_count)
+            top_vals, top_local = sims.topk(k)
 
-        matches: List[dict] = []
-        for val, local_idx in zip(top_vals.tolist(), top_local.tolist()):
-            slot_idx = int(active_indices[local_idx].item())
-            self.vs.reinforce(slot_idx)
-            matches.append({
-                "slot_idx": slot_idx,
-                "label": self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}"),
-                "domain": self.vs.slot_domains.get(slot_idx, "unknown"),
-                "similarity": round(float(val), 4),
-                "activation": round(float(self.vs.activation[slot_idx].item()), 4),
-            })
+            matches: List[dict] = []
+            for val, local_idx in zip(top_vals.tolist(), top_local.tolist()):
+                slot_idx = int(active_indices[local_idx].item())
+                self.vs.reinforce(slot_idx)
+                matches.append({
+                    "slot_idx": slot_idx,
+                    "label": self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}"),
+                    "domain": self.vs.slot_domains.get(slot_idx, "unknown"),
+                    "similarity": round(float(val), 4),
+                    "activation": round(float(self.vs.activation[slot_idx].item()), 4),
+                })
 
-        nearest_domain = matches[0]["domain"] if matches else ""
-        # Match the standalone word "negative" but not when it is part of
-        # "non-negative" (e.g. a domain named "non-negative-math" should not
-        # trigger a boundary violation).
-        boundary_violation = bool(
-            re.search(r'(?<!non-)\bnegative\b', nearest_domain, re.IGNORECASE)
-        )
+            nearest_domain = matches[0]["domain"] if matches else ""
+            boundary_violation = nearest_domain in self.vs.negative_domains
 
         return {
             "matches": matches,
