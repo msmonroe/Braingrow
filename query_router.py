@@ -3,11 +3,17 @@ query_router.py — Semantic query routing for BrainGrow.
 
 Encodes a natural-language query with sentence-transformers and routes
 it exclusively through the *active* slots of the VectorSpace, ignoring
-all dormant slots.  Top-K matches are returned; each matched slot is
+all dormant slots. Top-K matches are returned; each matched slot is
 reinforced, raising its activation score.
+
+Retrieval is now backed by VectorSpace.search_active(), which uses a
+FAISS index (GPU-accelerated on RTX 4070) when available and falls back
+to brute-force cosine similarity otherwise. This reduces query time from
+O(n_active) to O(log n_active) at scale.
 """
 
 from __future__ import annotations
+
 from typing import List, Union
 
 import torch
@@ -18,6 +24,7 @@ from vector_space import VectorSpace
 
 
 class QueryRouter:
+
     def __init__(
         self,
         vector_space: VectorSpace,
@@ -30,9 +37,13 @@ class QueryRouter:
         )
 
     # --------------------------------------------------------------------------
+
     def route_query(self, text: str, top_k: int = 5) -> dict:
         """
         Route *text* through the active vector space.
+
+        Uses VectorSpace.search_active() which is FAISS-backed when faiss
+        is installed (GPU-accelerated) and brute-force otherwise.
 
         Returns
         -------
@@ -40,11 +51,12 @@ class QueryRouter:
             matches: [
                 {slot_idx, label, domain, similarity, activation}, ...
             ],
-            active_count     : int,
-            dormant_count    : int,
-            query_embedding  : Tensor[D],
-            boundary_violation: bool,   # True when nearest domain contains 'negative'
-            nearest_domain   : str,     # domain of the top match (empty if no matches)
+            active_count      : int,
+            dormant_count     : int,
+            query_embedding   : Tensor[D],
+            boundary_violation: bool,   # True when nearest domain is negative
+            nearest_domain    : str,
+            faiss_used        : bool,   # True when FAISS index served the query
         }
 
         When *boundary_violation* is True the caller should surface
@@ -54,48 +66,43 @@ class QueryRouter:
         emb_unit = encode_unit_torch(self.model, text)
 
         with self.vs._lock:
-            active_mask = self.vs.get_active_mask()
-            active_count = int(active_mask.sum().item())
-            dormant_count = int((~active_mask).sum().item())
+            active_count  = self.vs.n_active
+            dormant_count = self.vs.N - active_count
 
             if active_count == 0:
                 return {
-                    "matches": [],
-                    "active_count": 0,
-                    "dormant_count": dormant_count,
-                    "query_embedding": emb_unit,
-                    "nearest_domain": "",
+                    "matches":            [],
+                    "active_count":       0,
+                    "dormant_count":      dormant_count,
+                    "query_embedding":    emb_unit,
+                    "nearest_domain":     "",
                     "boundary_violation": False,
+                    "faiss_used":         False,
                 }
 
-            active_indices = active_mask.nonzero(as_tuple=True)[0]
-            active_vecs = self.vs.slots[active_indices]  # [A, D]
-
-            sims = active_vecs @ emb_unit  # [A]
-
-            k = min(top_k, active_count)
-            top_vals, top_local = sims.topk(k)
+            # Delegate retrieval to VectorSpace — FAISS or brute-force
+            similarities, slot_indices = self.vs.search_active(emb_unit, top_k)
 
             matches: List[dict] = []
-            for val, local_idx in zip(top_vals.tolist(), top_local.tolist()):
-                slot_idx = int(active_indices[local_idx].item())
+            for sim, slot_idx in zip(similarities, slot_indices):
                 self.vs.reinforce(slot_idx)
                 matches.append({
-                    "slot_idx": slot_idx,
-                    "label": self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}"),
-                    "domain": self.vs.slot_domains.get(slot_idx, "unknown"),
-                    "similarity": round(float(val), 4),
+                    "slot_idx":   slot_idx,
+                    "label":      self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}"),
+                    "domain":     self.vs.slot_domains.get(slot_idx, "unknown"),
+                    "similarity": round(float(sim), 4),
                     "activation": round(float(self.vs.activation[slot_idx].item()), 4),
                 })
 
-            nearest_domain = matches[0]["domain"] if matches else ""
+            nearest_domain     = matches[0]["domain"] if matches else ""
             boundary_violation = nearest_domain in self.vs.negative_domains
 
-        return {
-            "matches": matches,
-            "active_count": active_count,
-            "dormant_count": dormant_count,
-            "query_embedding": emb_unit,
-            "nearest_domain": nearest_domain,
-            "boundary_violation": boundary_violation,
-        }
+            return {
+                "matches":            matches,
+                "active_count":       active_count,
+                "dormant_count":      dormant_count,
+                "query_embedding":    emb_unit,
+                "nearest_domain":     nearest_domain,
+                "boundary_violation": boundary_violation,
+                "faiss_used":         self.vs.faiss_available,
+            }

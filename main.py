@@ -2,10 +2,11 @@
 main.py — BrainGrow Gradio application entry point.
 
 Thin UI layer: builds the Gradio interface and wires callbacks to the
-BrainGrowSession business-logic class.  No application state lives here.
+BrainGrowSession business-logic class. No application state lives here.
 
 Run:
     python main.py
+
 Then open the URL printed to the console.
 """
 
@@ -21,8 +22,8 @@ from session import BrainGrowSession, STAGE_PRESETS
 # ---------------------------------------------------------------------------
 # Single shared session — owns all state and business logic
 # ---------------------------------------------------------------------------
-session = BrainGrowSession()
 
+session = BrainGrowSession()
 
 # ---------------------------------------------------------------------------
 # UI-layer helpers (Gradio component construction only)
@@ -32,32 +33,44 @@ def _refresh_saves_dropdown() -> gr.Dropdown:
     files = session.list_saves()
     return gr.Dropdown(choices=files, value=files[0] if files else None)
 
-
 def save_network(description: str) -> Tuple[str, gr.Dropdown]:
     return session.save_network(description), _refresh_saves_dropdown()
 
-
 def delete_save(selected_path: str) -> Tuple[str, gr.Dropdown]:
     return session.delete_save(selected_path), _refresh_saves_dropdown()
-
 
 def get_query_choices(query_type: str) -> gr.Dropdown:
     choices = session.get_query_choices(query_type)
     return gr.Dropdown(choices=choices, value=choices[0] if choices else None)
 
+def get_correction_log() -> str:
+    """Return a formatted correction log for display in the maintenance panel."""
+    log = session.maintenance.correction_log()
+    if not log:
+        return "_No reactive corrections made this session._"
+    lines = [f"**{len(log)} correction(s) recorded this session:**\n"]
+    for i, entry in enumerate(log, 1):
+        lines.append(
+            f"{i}. `{entry['query_text'][:55]}…`  \n"
+            f"   → domain: `{entry['nearest_domain']}`  \n"
+            f"   → negative slot: `{entry['slot_idx']}`  \n"
+            f"   → label: _{entry['negative_label'][:60]}_"
+        )
+    return "\n\n".join(lines)
+
 
 _HEADER_MD = """
 # 🧠 BrainGrow
-**Developmental AI Architecture — POC**  ·  Vektas Solutions  ·  March 2026
+**Developmental AI Architecture — POC** · Vektas Solutions · April 2026
 
-> Pre-allocates 200,000 vector slots.  Knowledge grows into dormant regions
+> Pre-allocates 200,000 vector slots. Knowledge grows into dormant regions
 > through staged exposure — no static training run.
 """
 
 _GROW_INTRO = """
 ### Tab 1 — Grow
-Feed text into the vector space one stage at a time.  Each sentence / line
-becomes a concept that *grows into* the nearest dormant region.  Watch the
+Feed text into the vector space one stage at a time. Each sentence / line
+becomes a concept that *grows into* the nearest dormant region. Watch the
 UMAP light up as domains form geometrically distinct clusters.
 """
 
@@ -65,18 +78,20 @@ _QUERY_INTRO = """
 ### Tab 2 — Query
 Routes your question through **active slots only** — dormant space is ignored.
 Matched slots are reinforced, raising their activation score.
+
+**Boundary violations** trigger automatic reactive correction — a negative
+counterexample is ingested immediately, and the correction is logged in Tab 5.
 """
 
 _PRUNE_INTRO = """
 ### Tab 3 — Prune
 Slots below the activation threshold are zeroed out and their space is
-reclaimed.  The before / after histogram shows how the activation landscape
+reclaimed. The before / after histogram shows how the activation landscape
 shifts — and how room opens for the next growth stage.
 """
 
 _COMPARE_INTRO = """
 ### Tab 4 — Compare (Hallucination Demo)
-
 Select a **Query Type** and run the comparison.
 
 - **Known** — queries whose concepts were ingested via Tab 1.
@@ -91,19 +106,29 @@ The **Dense** model always returns a confident answer — *hallucination*.
 
 _NETWORK_INTRO = """
 ### Tab 5 — Network (Save / Load)
-
 Persist and restore the complete network state — all embeddings, activations,
 domains, and stage history — as a `.bgstate` file.
 
-- **Save Network** — snapshot the current state to `saves/`.  
-- **Load Network** — restore a previous snapshot into the active vector space.  
+- **Save Network** — snapshot the current state to `saves/`.
+- **Load Network** — restore a previous snapshot into the active vector space.
 - **Autosave** — enable to checkpoint automatically after every Ingest Stage.
-  Essential for long TinyStories runs (20–30 minutes — protect against data loss).
+
+Essential for long TinyStories runs (20–30 minutes — protect against data loss).
+"""
+
+_MAINTENANCE_INTRO = """
+### Knowledge Maintenance
+**Proactive audit** — scans all registered domains and reports hallucination risk
+based on the ratio of positive to negative slots. High-risk domains have many
+positive examples and few or no negative counterbalances.
+
+**Reactive corrections** — boundary violations detected in Tab 2 automatically
+trigger negative slot ingestion. The log below tracks every correction made
+this session.
 """
 
 _TINYSTORIES_INTRO = """
 ### Tab 6 — TinyStories Experiment
-
 Scale test against the **roneneldan/TinyStories** corpus — 100,000 real-world
 story snippets, 200,000 slot space, unlabeled developmental growth.
 
@@ -117,7 +142,8 @@ Three progressive stages (run in order, catch bugs early):
 
 Requires: `pip install datasets`
 
-> *Enable Autosave in Tab 5 before starting Stage C.  A 30-minute run without persistence is a one-time demo, not a research asset.*
+> *Enable Autosave in Tab 5 before starting Stage C. A 30-minute run without
+> persistence is a one-time demo, not a research asset.*
 """
 
 
@@ -147,14 +173,13 @@ def build_ui() -> gr.Blocks:
                             placeholder="e.g. science, history, cooking",
                         )
                         with gr.Row():
-                            grow_btn = gr.Button("Ingest Stage", variant="primary")
-                            diff_btn = gr.Button("Stage Diff")
-                            umap_btn = gr.Button("Refresh UMAP")
+                            grow_btn  = gr.Button("Ingest Stage", variant="primary")
+                            diff_btn  = gr.Button("Stage Diff")
+                            umap_btn  = gr.Button("Refresh UMAP")
                             reset_btn = gr.Button("Reset", variant="stop")
                         grow_status = gr.Textbox(
                             label="Status", interactive=False, lines=2
                         )
-
                     with gr.Column(scale=2):
                         grow_umap = gr.Plot(label="Vector Space (UMAP / PCA)")
                         grow_hist = gr.Plot(label="Activation Histogram")
@@ -164,16 +189,8 @@ def build_ui() -> gr.Blocks:
                     inputs=[grow_text, grow_domain],
                     outputs=[grow_status, grow_umap, grow_hist],
                 )
-                diff_btn.click(
-                    fn=session.view_diff,
-                    inputs=[],
-                    outputs=[grow_umap],
-                )
-                umap_btn.click(
-                    fn=session.refresh_umap,
-                    inputs=[],
-                    outputs=[grow_umap],
-                )
+                diff_btn.click(fn=session.view_diff, inputs=[], outputs=[grow_umap])
+                umap_btn.click(fn=session.refresh_umap, inputs=[], outputs=[grow_umap])
                 reset_btn.click(
                     fn=session.reset_all,
                     inputs=[],
@@ -198,9 +215,9 @@ def build_ui() -> gr.Blocks:
                         )
                         query_btn = gr.Button("Route Query", variant="primary")
                         query_ratio = gr.Textbox(
-                            label="Active / Dormant Ratio", interactive=False
+                            label="Active / Dormant | Retrieval Mode",
+                            interactive=False,
                         )
-
                     with gr.Column(scale=2):
                         query_results = gr.Markdown(label="Matched Concepts")
 
@@ -225,7 +242,6 @@ def build_ui() -> gr.Blocks:
                         prune_status = gr.Textbox(
                             label="Status", interactive=False, lines=2
                         )
-
                     with gr.Column(scale=2):
                         prune_fig = gr.Plot(label="Before / After Comparison")
 
@@ -256,16 +272,11 @@ def build_ui() -> gr.Blocks:
                         compare_status = gr.Textbox(
                             label="Status", interactive=False, lines=2
                         )
-
                     with gr.Column(scale=2):
                         compare_table = gr.HTML(label="Comparison Results")
                         with gr.Row():
-                            compare_dense_umap = gr.Plot(
-                                label="Dense Model — Occupied Space"
-                            )
-                            compare_bg_umap = gr.Plot(
-                                label="BrainGrow — Dormant Space"
-                            )
+                            compare_dense_umap = gr.Plot(label="Dense Model — Occupied Space")
+                            compare_bg_umap    = gr.Plot(label="BrainGrow — Dormant Space")
 
                 compare_type.change(
                     fn=get_query_choices,
@@ -275,39 +286,37 @@ def build_ui() -> gr.Blocks:
                 compare_btn.click(
                     fn=session.run_comparison_tab,
                     inputs=[compare_type, compare_query],
-                    outputs=[
-                        compare_table,
-                        compare_dense_umap,
-                        compare_bg_umap,
-                        compare_status,
-                    ],
+                    outputs=[compare_table, compare_dense_umap, compare_bg_umap, compare_status],
                 )
 
             # ----------------------------------------------------------------
-            # TAB 5 — NETWORK
+            # TAB 5 — NETWORK + KNOWLEDGE MAINTENANCE
             # ----------------------------------------------------------------
             with gr.Tab("Network"):
                 gr.Markdown(_NETWORK_INTRO)
+
                 with gr.Row():
+                    # ── Save ─────────────────────────────────────────────
                     with gr.Column(scale=1, min_width=280):
                         net_description = gr.Textbox(
                             label="Save Description (optional)",
                             placeholder="e.g. tinystories_10k, after-pruning-v2…",
                             lines=1,
                         )
-                        net_save_btn = gr.Button("💾  Save Network", variant="primary")
+                        net_save_btn = gr.Button("💾 Save Network", variant="primary")
                         net_save_status = gr.Textbox(
                             label="Save Status", interactive=False, lines=2
                         )
                         gr.Markdown("---")
                         net_autosave = gr.Checkbox(
-                            label="🔄  Enable Autosave after each Ingest Stage",
+                            label="🔄 Enable Autosave after each Ingest Stage",
                             value=False,
                         )
                         net_autosave_status = gr.Textbox(
                             label="Autosave Status", interactive=False, lines=1
                         )
 
+                    # ── Load / Delete ────────────────────────────────────
                     with gr.Column(scale=1, min_width=280):
                         net_saves_dropdown = gr.Dropdown(
                             choices=session.list_saves(),
@@ -315,9 +324,9 @@ def build_ui() -> gr.Blocks:
                             interactive=True,
                         )
                         with gr.Row():
-                            net_refresh_btn  = gr.Button("🔄  Refresh List")
-                            net_load_btn     = gr.Button("Load Selected", variant="primary")
-                            net_delete_btn   = gr.Button("🗑️  Delete", variant="stop")
+                            net_refresh_btn = gr.Button("🔄 Refresh List")
+                            net_load_btn    = gr.Button("Load Selected", variant="primary")
+                            net_delete_btn  = gr.Button("🗑️ Delete", variant="stop")
                         net_load_status = gr.Textbox(
                             label="Load Status", interactive=False, lines=4
                         )
@@ -330,6 +339,36 @@ def build_ui() -> gr.Blocks:
                     net_umap = gr.Plot(label="Vector Space (UMAP)")
                     net_hist = gr.Plot(label="Activation Histogram")
 
+                # ── Knowledge Maintenance ─────────────────────────────────
+                gr.Markdown("---")
+                gr.Markdown(_MAINTENANCE_INTRO)
+
+                with gr.Row():
+                    with gr.Column(scale=1, min_width=260):
+                        audit_btn = gr.Button(
+                            "🔍 Run Hallucination Risk Audit", variant="primary"
+                        )
+                        correction_log_btn = gr.Button("📋 Show Correction Log")
+
+                    with gr.Column(scale=2):
+                        audit_output = gr.Textbox(
+                            label="Audit Report",
+                            interactive=False,
+                            lines=16,
+                            placeholder=(
+                                "Click 'Run Hallucination Risk Audit' to scan all "
+                                "registered domains for positive/negative imbalance.\n\n"
+                                "HIGH risk domains have many positive examples and few "
+                                "or no negative counterbalances — they are most likely "
+                                "to produce confident hallucinations."
+                            ),
+                        )
+                        correction_log_output = gr.Markdown(
+                            label="Reactive Correction Log",
+                            value="_Boundary violations detected in Tab 2 will appear here._",
+                        )
+
+                # ── Tab 5 wiring ──────────────────────────────────────────
                 net_save_btn.click(
                     fn=save_network,
                     inputs=[net_description],
@@ -360,6 +399,16 @@ def build_ui() -> gr.Blocks:
                     inputs=[],
                     outputs=[net_info_md],
                 )
+                audit_btn.click(
+                    fn=session.run_audit,
+                    inputs=[],
+                    outputs=[audit_output],
+                )
+                correction_log_btn.click(
+                    fn=get_correction_log,
+                    inputs=[],
+                    outputs=[correction_log_output],
+                )
 
             # ----------------------------------------------------------------
             # TAB 6 — TINYSTORIES
@@ -375,25 +424,19 @@ def build_ui() -> gr.Blocks:
                         )
                         gr.Markdown("*Or set custom values:*")
                         ts_custom_sample = gr.Number(
-                            label="Sample Size (stories)",
-                            value=2000,
-                            precision=0,
+                            label="Sample Size (stories)", value=2000, precision=0,
                         )
                         ts_custom_chunks = gr.Number(
-                            label="Max Chunks",
-                            value=1000,
-                            precision=0,
+                            label="Max Chunks", value=1000, precision=0,
                         )
                         with gr.Row():
-                            ts_run_btn = gr.Button(
-                                "🚀  Load & Ingest TinyStories",
-                                variant="primary",
+                            ts_run_btn  = gr.Button(
+                                "🚀 Load & Ingest TinyStories", variant="primary"
                             )
                             ts_umap_btn = gr.Button("Refresh UMAP")
                         ts_status = gr.Textbox(
                             label="Status", interactive=False, lines=5
                         )
-
                     with gr.Column(scale=2):
                         ts_umap = gr.Plot(label="Vector Space (UMAP)")
                         ts_hist = gr.Plot(label="Activation Histogram")
@@ -404,15 +447,14 @@ def build_ui() -> gr.Blocks:
                     outputs=[ts_status, ts_umap, ts_hist],
                 )
                 ts_umap_btn.click(
-                    fn=session.refresh_umap,
-                    inputs=[],
-                    outputs=[ts_umap],
+                    fn=session.refresh_umap, inputs=[], outputs=[ts_umap]
                 )
 
     return demo
 
 
 # ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
     demo = build_ui()
     demo.launch(
