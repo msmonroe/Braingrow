@@ -18,6 +18,7 @@ from comparison_harness import (
     known_queries,
     partial_queries,
     unknown_queries,
+    run_comparison,
 )
 from growth_engine import GrowthEngine
 from vector_space import VectorSpace
@@ -219,3 +220,86 @@ class TestBrainGrowModel:
         result = bg.query("roman empire history")
         # rounded(x, 4) == round(x, 4) is True when already at 4dp
         assert result["similarity"] == round(result["similarity"], 4)
+
+
+# ===========================================================================
+# DenseModel.add_chunks — edge-path coverage
+# ===========================================================================
+
+class TestDenseModelAddChunks:
+    def test_add_chunks_skips_all_empty_inputs(self, mock_model):
+        """Line 125: early return when every new chunk is empty/whitespace."""
+        dm = DenseModel([("initial text for seed", "d")], mock_model)
+        n_before = len(dm.labels)
+        dm.add_chunks([("", "d"), ("   ", "d")])
+        assert len(dm.labels) == n_before
+
+    def test_add_chunks_into_empty_embeddings(self, mock_model):
+        """The `else new_embs` branch: embeddings start as shape (0, 384)."""
+        dm = DenseModel([], mock_model)
+        assert dm.embeddings.shape[0] == 0
+        dm.add_chunks([("a brand-new chunk of text", "science")])
+        assert dm.embeddings.shape[0] == 1
+        assert dm.labels[0].startswith("a brand-new chunk")
+
+    def test_add_chunks_mixed_empty_and_valid(self, mock_model):
+        """Empty strings in the list are filtered; valid ones are added."""
+        dm = DenseModel([], mock_model)
+        dm.add_chunks([("", "d"), ("valid text content here", "science"), ("  ", "d")])
+        assert dm.embeddings.shape[0] == 1
+        assert dm.domains[0] == "science"
+
+    def test_add_chunks_grows_labels_incrementally(self, mock_model):
+        dm = DenseModel([("first chunk text here", "history")], mock_model)
+        dm.add_chunks([("second chunk text data", "physics")])
+        assert len(dm.labels) == 2
+        assert len(dm.domains) == 2
+
+
+# ===========================================================================
+# run_comparison — console output function
+# ===========================================================================
+
+class TestRunComparison:
+    def _setup(self, mock_model):
+        """Return a populated (DenseModel, BrainGrowModel) pair."""
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        from growth_engine import GrowthEngine
+        engine = GrowthEngine(vs, mock_model)
+        chunks = [
+            ("DNA replication is a biological process", "science"),
+            ("The Roman Empire fell in 476 AD", "history"),
+            ("Fermentation produces ethanol and carbon dioxide", "cooking"),
+        ]
+        engine.ingest_stage(chunks)
+        dm = DenseModel(chunks, mock_model)
+        bg = BrainGrowModel(vs, mock_model)
+        return dm, bg
+
+    def test_run_comparison_completes_without_exception(self, mock_model, capsys):
+        dm, bg = self._setup(mock_model)
+        run_comparison(dm, bg)  # should not raise
+
+    def test_run_comparison_prints_known_queries_header(self, mock_model, capsys):
+        dm, bg = self._setup(mock_model)
+        run_comparison(dm, bg)
+        captured = capsys.readouterr()
+        assert "KNOWN QUERIES" in captured.out
+
+    def test_run_comparison_prints_partial_queries_header(self, mock_model, capsys):
+        dm, bg = self._setup(mock_model)
+        run_comparison(dm, bg)
+        captured = capsys.readouterr()
+        assert "PARTIAL QUERIES" in captured.out
+
+    def test_run_comparison_prints_unknown_queries_header(self, mock_model, capsys):
+        dm, bg = self._setup(mock_model)
+        run_comparison(dm, bg)
+        captured = capsys.readouterr()
+        assert "UNKNOWN QUERIES" in captured.out
+
+    def test_run_comparison_output_is_non_empty(self, mock_model, capsys):
+        dm, bg = self._setup(mock_model)
+        run_comparison(dm, bg)
+        captured = capsys.readouterr()
+        assert len(captured.out) > 0

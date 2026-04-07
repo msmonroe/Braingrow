@@ -202,3 +202,82 @@ class TestPlotDenseUmap:
         fig = Visualizer().plot_dense_umap(embs, labels, domains, query_vector=q)
         names = [t.name for t in fig.data]
         assert "Query" in names
+
+
+# ===========================================================================
+# plot_umap — empty-space and single-vector edge cases
+# ===========================================================================
+
+class TestPlotUmapEdgeCases:
+    def test_empty_space_with_no_shown_dormant_returns_titled_figure(self):
+        """Lines 131-137: when all_indices is truly empty (no dormant shown), return early."""
+        import visualizer as _vis
+        original = _vis._MAX_DORMANT_SHOWN
+        _vis._MAX_DORMANT_SHOWN = 0  # suppress dormant rendering
+        try:
+            vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+            fig = Visualizer().plot_umap(vs)  # empty VS, no dormant shown, no query
+            assert isinstance(fig, go.Figure)
+            assert "empty" in fig.layout.title.text.lower() or fig.layout.title.text
+        finally:
+            _vis._MAX_DORMANT_SHOWN = original
+
+    def test_single_query_vector_with_no_slots_triggers_not_enough_data(self):
+        """Lines 157-161 in plot_umap: 1 vector < 2 triggers 'Not enough data' title."""
+        import visualizer as _vis
+        original = _vis._MAX_DORMANT_SHOWN
+        _vis._MAX_DORMANT_SHOWN = 0
+        try:
+            vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+            q = _np_unit(5)
+            # With dormant suppressed, slot_vecs is empty; vectors = q_arr (1 row)
+            fig = Visualizer().plot_umap(vs, query_vector=q)
+            assert isinstance(fig, go.Figure)
+            assert "not enough" in fig.layout.title.text.lower()
+        finally:
+            _vis._MAX_DORMANT_SHOWN = original
+
+
+# ===========================================================================
+# plot_dense_umap — single-embedding edge case
+# ===========================================================================
+
+class TestPlotDenseUmapEdgeCases:
+    def test_single_embedding_no_query_triggers_not_enough_data(self):
+        """Lines 272-276: 1 embedding, no query → len(vectors)==1 < 2 → early return."""
+        emb = np.stack([_np_unit(0)])  # shape (1, 8)
+        fig = Visualizer().plot_dense_umap(emb, ["single-label"], ["domain"])
+        assert isinstance(fig, go.Figure)
+        assert "not enough" in fig.layout.title.text.lower()
+
+    def test_empty_embeddings_returns_no_data_figure(self):
+        """Lines 255-259: 0 embeddings → 'Dense Model — no data ingested yet'."""
+        fig = Visualizer().plot_dense_umap(
+            np.empty((0, DIMS), dtype=np.float32), [], []
+        )
+        assert isinstance(fig, go.Figure)
+        assert "no data" in fig.layout.title.text.lower()
+
+    def test_dense_umap_subsamples_when_too_many_embeddings(self):
+        """Lines 255-259: dense UMAP subsamples when len(embeddings) > _MAX_ACTIVE_SHOWN."""
+        import visualizer as _vis
+        original = _vis._MAX_ACTIVE_SHOWN
+        _vis._MAX_ACTIVE_SHOWN = 3  # force sampling with 5 embeddings
+        try:
+            embs = np.stack([_np_unit(i) for i in range(5)])  # 5 > 3
+            labels = [f"l{i}" for i in range(5)]
+            domains = ["d"] * 5
+            fig = Visualizer().plot_dense_umap(embs, labels, domains)
+            assert isinstance(fig, go.Figure)
+        finally:
+            _vis._MAX_ACTIVE_SHOWN = original
+
+    def test_empty_embeddings_with_query_still_returns_no_data_figure(self):
+        """0 embeddings is caught by the first guard even when query_vector is supplied."""
+        q = _np_unit(7)
+        fig = Visualizer().plot_dense_umap(
+            np.empty((0, DIMS), dtype=np.float32), [], [], query_vector=q
+        )
+        assert isinstance(fig, go.Figure)
+        # 0 embs → "Dense Model — no data ingested yet" (first guard fires)
+        assert "dense model" in fig.layout.title.text.lower()

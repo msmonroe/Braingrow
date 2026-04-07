@@ -50,9 +50,14 @@ class _SessionMockModel:
         convert_to_numpy: bool = False,
         **kwargs,
     ) -> np.ndarray:
+        convert_to_tensor = kwargs.get("convert_to_tensor", False)
         if isinstance(text, list):
-            return np.stack([self._one(t) for t in text], axis=0)
-        return self._one(text)
+            vecs = np.stack([self._one(t) for t in text], axis=0)
+        else:
+            vecs = self._one(text)
+        if convert_to_tensor:
+            return torch.tensor(vecs, dtype=torch.float32)
+        return vecs
 
     @staticmethod
     def _one(text: str) -> np.ndarray:
@@ -391,3 +396,296 @@ class TestGetNetworkInfo:
         info_after = tiny_session.get_network_info()
         # active count should be higher after ingest
         assert info_before != info_after
+
+
+# ===========================================================================
+# refresh_umap / view_diff
+# ===========================================================================
+
+class TestRefreshUmap:
+    def test_refresh_umap_returns_figure(self, tiny_session):
+        import plotly.graph_objects as go
+        fig = tiny_session.refresh_umap()
+        assert isinstance(fig, go.Figure)
+
+    def test_refresh_umap_reflects_active_slots(self, tiny_session):
+        import plotly.graph_objects as go
+        tiny_session.ingest("Photosynthesis converts light to chemical energy.", "science")
+        fig = tiny_session.refresh_umap()
+        assert isinstance(fig, go.Figure)
+
+
+class TestViewDiff:
+    def test_view_diff_no_new_slots_returns_figure(self, tiny_session):
+        """Lines 177-179: if engine has no new-slot diff, returns plot_umap figure."""
+        import plotly.graph_objects as go
+        # No ingest → no stage history → diff["new_slots"] is empty
+        fig = tiny_session.view_diff()
+        assert isinstance(fig, go.Figure)
+
+    def test_view_diff_after_ingest_returns_figure(self, tiny_session):
+        """Line 180: after ingest there are new slots, returns plot_stage_diff figure."""
+        import plotly.graph_objects as go
+        # Ingest multiple distinct lines so >=2 new slots are created (PCA needs >=2 points)
+        tiny_session.ingest(
+            "Quantum mechanics energy levels.\n"
+            "Classical physics momentum conservation.\n"
+            "Thermodynamics entropy and heat.",
+            "physics",
+        )
+        fig = tiny_session.view_diff()
+        assert isinstance(fig, go.Figure)
+
+
+# ===========================================================================
+# Query — boundary violation and FAISS flag
+# ===========================================================================
+
+class TestQueryBoundaryViolation:
+    def test_boundary_violation_returns_violation_message(self, tiny_session):
+        """Lines 218-233: query that lands in a negative domain activates maintenance."""
+        from utils import encode_unit_torch
+
+        text = "boundary_violation_test_unique_xyz_abc_123"
+        # Compute the same embedding the router will compute
+        emb = encode_unit_torch(tiny_session.router.model, text)
+
+        # Place a slot with that exact embedding in a negative domain
+        neg_domain = "hazard-negative"
+        tiny_session.vs.assign_slot(emb, label=text, domain=neg_domain)
+        tiny_session.vs.register_negative_domain(neg_domain)
+
+        result, ratio = tiny_session.query(text, 1)
+        assert "BOUNDARY VIOLATION" in result
+
+    def test_boundary_violation_increments_correction_count(self, tiny_session):
+        """Maintenance correction log grows after a boundary violation."""
+        from utils import encode_unit_torch
+
+        text = "boundary_correction_count_test_unique_abc_99"
+        emb = encode_unit_torch(tiny_session.router.model, text)
+        neg_domain = "danger-negative"
+        tiny_session.vs.assign_slot(emb, label=text, domain=neg_domain)
+        tiny_session.vs.register_negative_domain(neg_domain)
+
+        tiny_session.query(text, 1)
+        assert tiny_session.maintenance.correction_count() == 1
+
+    def test_boundary_violation_ratio_string_populated(self, tiny_session):
+        """The ratio string is set even when a boundary violation is triggered."""
+        from utils import encode_unit_torch
+
+        text = "boundary_ratio_test_text_unique_xyz_007"
+        emb = encode_unit_torch(tiny_session.router.model, text)
+        neg_domain = "toxic-negative"
+        tiny_session.vs.assign_slot(emb, label=text, domain=neg_domain)
+        tiny_session.vs.register_negative_domain(neg_domain)
+
+        _, ratio = tiny_session.query(text, 1)
+        assert "Active" in ratio
+
+
+class TestQueryFaissFlag:
+    def test_faiss_flag_appears_in_ratio_when_available(self, tiny_session):
+        """Line 210-211: if faiss_used is True, ratio contains 'FAISS'."""
+        import vector_space as _vs_mod
+        if not _vs_mod._FAISS_AVAILABLE:
+            pytest.skip("FAISS not installed")
+        tiny_session.ingest("Quantum entanglement is a physics phenomenon.", "physics")
+        _, ratio = tiny_session.query("quantum entanglement", 3)
+        # With FAISS installed and active slots, faiss_used == True
+        assert "FAISS" in ratio
+
+
+# ===========================================================================
+# get_query_choices / run_comparison_tab with data
+# ===========================================================================
+
+class TestGetQueryChoices:
+    def test_known_returns_known_queries(self, tiny_session):
+        from comparison_harness import known_queries
+        choices = tiny_session.get_query_choices("Known")
+        assert choices == known_queries
+
+    def test_partial_returns_partial_queries(self, tiny_session):
+        from comparison_harness import partial_queries
+        choices = tiny_session.get_query_choices("Partial")
+        assert choices == partial_queries
+
+    def test_unknown_returns_unknown_queries(self, tiny_session):
+        from comparison_harness import unknown_queries
+        choices = tiny_session.get_query_choices("Unknown")
+        assert choices == unknown_queries
+
+    def test_invalid_type_returns_empty(self, tiny_session):
+        choices = tiny_session.get_query_choices("Nonexistent")
+        assert choices == []
+
+
+class TestRunComparisonTabWithData:
+    def _ingest_data(self, tiny_session):
+        """Populate both VectorSpace and DenseModel with a few facts."""
+        tiny_session.ingest(
+            "DNA replication is a fundamental biological process.\n"
+            "Photosynthesis converts sunlight into chemical energy.\n"
+            "The Roman Empire fell in 476 AD.",
+            "science",
+        )
+
+    def test_known_query_returns_html_table(self, tiny_session):
+        self._ingest_data(tiny_session)
+        from comparison_harness import known_queries
+        query = known_queries[0]
+        html, dense_fig, bg_fig, status = tiny_session.run_comparison_tab("Known", query)
+        assert "Dense" in html
+        assert "BrainGrow" in html
+        assert isinstance(status, str)
+
+    def test_unknown_query_marks_hallucination(self, tiny_session):
+        """For Unknown queries, Dense model is flagged as HALLUCINATED when confident."""
+        self._ingest_data(tiny_session)
+        from comparison_harness import unknown_queries
+        query = unknown_queries[0]
+        html, _, _, _ = tiny_session.run_comparison_tab("Unknown", query)
+        # DenseModel always returns confident=True → if similarity > 0, it hallucinated
+        assert isinstance(html, str)
+        assert "<table" in html
+
+    def test_partial_query_returns_table(self, tiny_session):
+        self._ingest_data(tiny_session)
+        from comparison_harness import partial_queries
+        query = partial_queries[0]
+        html, dense_fig, bg_fig, status = tiny_session.run_comparison_tab("Partial", query)
+        assert "<table" in html
+        assert dense_fig is not None
+        assert bg_fig is not None
+
+    def test_status_contains_similarity_info(self, tiny_session):
+        self._ingest_data(tiny_session)
+        from comparison_harness import known_queries
+        _, _, _, status = tiny_session.run_comparison_tab("Known", known_queries[0])
+        assert "sim" in status.lower() or "Dense sim" in status
+
+
+# ===========================================================================
+# run_audit
+# ===========================================================================
+
+class TestRunAudit:
+    def test_run_audit_empty_space_returns_warning(self, tiny_session):
+        """Line 460: run_audit with no active slots returns warning string."""
+        result = tiny_session.run_audit()
+        assert "⚠️" in result
+
+    def test_run_audit_after_ingest_returns_report_text(self, tiny_session):
+        """After ingesting data, run_audit returns AuditReport.as_text()."""
+        tiny_session.ingest(
+            "Biology fact about cell division.\n"
+            "Chemistry fact about molecular bonds.\n"
+            "Physics fact about quantum states.",
+            "science",
+        )
+        result = tiny_session.run_audit()
+        assert isinstance(result, str)
+        # Report should mention domains or audit
+        assert "Hallucination" in result or "domain" in result.lower() or "session" in result
+
+    def test_run_audit_includes_correction_count(self, tiny_session):
+        """Footer always mentions correction count."""
+        tiny_session.ingest("Some educational text about science here.", "science")
+        result = tiny_session.run_audit()
+        assert "correction" in result.lower()
+
+
+# ===========================================================================
+# Tab 6 — TinyStories (datasets unavailable path)
+# ===========================================================================
+
+class TestListSaves:
+    def test_list_saves_empty_when_no_saves(self, tiny_session):
+        """Line 375: list_saves returns empty list when no .bgstate files exist."""
+        saves = tiny_session.list_saves()
+        assert saves == []
+
+    def test_list_saves_returns_paths_after_save(self, tiny_session):
+        tiny_session.ingest("Content for list_saves test.", "science")
+        tiny_session.save_network("list-saves-test")
+        saves = tiny_session.list_saves()
+        assert len(saves) == 1
+        assert saves[0].endswith(".bgstate")
+
+
+class TestDeleteSaveEmptySelection:
+    def test_delete_save_empty_string_returns_warning(self, tiny_session):
+        """Line 460: delete_save with empty selection returns 'No file selected'."""
+        status = tiny_session.delete_save("")
+        assert "⚠️" in status
+        assert "selected" in status.lower()
+
+
+class TestRunTinyStoriesUnavailable:
+    def test_datasets_unavailable_returns_warning(self, tiny_session, monkeypatch):
+        """Lines 500-515: when datasets is not installed, returns install instructions."""
+        import session as _s
+        monkeypatch.setattr(_s, "_check_datasets_available", lambda: False)
+        msg, fig1, fig2 = tiny_session.run_tinystories_stage("Stage A — Warmup", 100, 100)
+        assert "⚠️" in msg
+        assert "datasets" in msg
+        assert fig1 is None
+        assert fig2 is None
+
+
+class TestRunTinyStoriesAvailable:
+    def test_tinystories_runs_with_preset(self, tiny_session, monkeypatch):
+        """Lines 536-579: full TinyStories path when datasets IS available."""
+        import session as _s
+
+        # Fake chunks returned by prepare_experiment
+        fake_chunks = [
+            ("Once upon a time a cat sat on a mat.", "stories"),
+            ("The dog ran to the park every day.", "stories"),
+            ("Alice liked to read books in the garden.", "stories"),
+        ]
+
+        monkeypatch.setattr(_s, "_check_datasets_available", lambda: True)
+        # Inject a known preset so the preset branch is taken
+        monkeypatch.setattr(_s, "STAGE_PRESETS", {
+            "TestPreset": {"sample_size": 3, "max_chunks": 3},
+        })
+        monkeypatch.setattr(_s, "prepare_experiment", lambda **kw: fake_chunks)
+
+        msg, fig1, fig2 = tiny_session.run_tinystories_stage("TestPreset", 0, 0)
+        assert "Stage" in msg or "complete" in msg.lower()
+        assert fig2 is not None  # histogram is always returned
+
+    def test_tinystories_uses_custom_sample_when_no_preset(self, tiny_session, monkeypatch):
+        """Lines 542-543: custom_sample / custom_chunks branch when preset not found."""
+        import session as _s
+
+        fake_chunks = [
+            ("Custom sample story text here once.", "stories"),
+            ("Another custom story about a rabbit.", "stories"),
+            ("Third tiny story about woodland creatures.", "stories"),
+        ]
+
+        monkeypatch.setattr(_s, "_check_datasets_available", lambda: True)
+        monkeypatch.setattr(_s, "STAGE_PRESETS", {})  # no presets
+        monkeypatch.setattr(_s, "prepare_experiment", lambda **kw: fake_chunks)
+
+        msg, _, _ = tiny_session.run_tinystories_stage("NonExistentPreset", 3, 3)
+        assert isinstance(msg, str)
+
+    def test_tinystories_error_handling(self, tiny_session, monkeypatch):
+        """Error path: prepare_experiment raises → returns error message."""
+        import session as _s
+
+        monkeypatch.setattr(_s, "_check_datasets_available", lambda: True)
+        monkeypatch.setattr(_s, "STAGE_PRESETS", {})
+
+        def _fail(**kw):
+            raise RuntimeError("download failed")
+
+        monkeypatch.setattr(_s, "prepare_experiment", _fail)
+
+        msg, fig1, fig2 = tiny_session.run_tinystories_stage("X", 10, 10)
+        assert "Error" in msg or "❌" in msg

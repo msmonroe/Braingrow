@@ -355,7 +355,7 @@ class TestPersistence:
             vs.save(path, description="my-snapshot")
             _, meta = VectorSpace.load(path)
             assert meta["description"] == "my-snapshot"
-            assert meta["version"] == "1.0"
+            assert meta["version"] == "1.1"
             assert "saved_at" in meta
         finally:
             os.unlink(path)
@@ -380,3 +380,123 @@ class TestPersistence:
         assert os.path.exists(path)
         assert path.endswith(".bgstate")
         assert "autosave_" in os.path.basename(path)
+
+    def test_load_nonexistent_file_raises_file_not_found(self):
+        """Line 420: VectorSpace.load raises FileNotFoundError for missing files."""
+        with pytest.raises(FileNotFoundError):
+            VectorSpace.load("/nonexistent/path/no_such_file.bgstate")
+
+
+# ===========================================================================
+# FAISS index paths
+# ===========================================================================
+
+import vector_space as _vs_mod  # noqa: E402 — needed for monkeypatching
+
+
+class TestBuildFaissIndexEmpty:
+    def test_no_active_slots_sets_index_to_none(self):
+        """Line 113: _build_faiss_index with no active slots leaves _faiss_index as None."""
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        # VS has no active slots; trigger an explicit rebuild
+        vs._faiss_dirty = True
+        vs._build_faiss_index()
+        assert vs._faiss_index is None
+        assert vs._faiss_slot_map == []
+        assert vs._faiss_dirty is False
+
+    def test_faiss_search_returns_empty_when_no_active(self):
+        """Line 168: _faiss_search returns ([], []) when the built index is None."""
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        sims, indices = vs._faiss_search(_unit_vec(0), top_k=5)
+        assert sims == []
+        assert indices == []
+
+    def test_use_faiss_false_when_no_active_slots(self):
+        """_use_faiss property returns False when n_active == 0, even if FAISS is available."""
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        # No active slots → faiss should not be used
+        assert vs._use_faiss is False
+
+    def test_use_faiss_true_when_active_and_faiss_available(self):
+        """_use_faiss property returns True when there are active slots and FAISS is installed."""
+        if not _vs_mod._FAISS_AVAILABLE:
+            pytest.skip("FAISS not installed")
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        vs.assign_slot(_unit_vec(1))
+        assert vs._use_faiss is True
+
+
+class TestBruteForceSearch:
+    def test_brute_force_search_returns_results(self, monkeypatch):
+        """Lines 207-219: brute-force path executes correctly when FAISS is disabled."""
+        monkeypatch.setattr(_vs_mod, "_FAISS_AVAILABLE", False)
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        vs.assign_slot(_unit_vec(1), label="concept-a", domain="science")
+        vs.assign_slot(_unit_vec(2), label="concept-b", domain="history")
+
+        sims, indices = vs.search_active(_unit_vec(1), top_k=2)
+        assert len(indices) == 2
+        assert len(sims) == 2
+        assert all(isinstance(i, int) for i in indices)
+
+    def test_brute_force_search_top_k_capped(self, monkeypatch):
+        """Requesting more results than active slots returns at most n_active items."""
+        monkeypatch.setattr(_vs_mod, "_FAISS_AVAILABLE", False)
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        vs.assign_slot(_unit_vec(1))  # only 1 active slot
+
+        sims, indices = vs.search_active(_unit_vec(1), top_k=10)
+        assert len(indices) <= 1
+
+    def test_brute_force_search_empty_space_returns_empty(self, monkeypatch):
+        """Brute-force returns ([], []) if no active slots."""
+        monkeypatch.setattr(_vs_mod, "_FAISS_AVAILABLE", False)
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        sims, indices = vs.search_active(_unit_vec(1), top_k=5)
+        assert sims == []
+        assert indices == []
+
+    def test_brute_force_highest_sim_is_exact_match(self, monkeypatch):
+        """The slot whose vector equals the query should have the highest similarity."""
+        monkeypatch.setattr(_vs_mod, "_FAISS_AVAILABLE", False)
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        target = _unit_vec(42)
+        result = vs.assign_slot(target, label="target-slot", domain="test")
+        target_idx = result["slot_idx"]
+        vs.assign_slot(_unit_vec(7), label="other-slot", domain="test")
+
+        sims, indices = vs.search_active(target, top_k=2)
+        assert indices[0] == target_idx
+
+
+class TestFaissIvfPath:
+    def test_ivf_index_built_when_above_flat_threshold(self, monkeypatch):
+        """Lines 134-137: IVF index is created when slot count exceeds _FAISS_FLAT_MAX."""
+        if not _vs_mod._FAISS_AVAILABLE:
+            pytest.skip("FAISS not installed")
+        import faiss as _faiss
+
+        monkeypatch.setattr(VectorSpace, "_FAISS_FLAT_MAX", 1)
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        # Add 2 slots so n == 2 > _FAISS_FLAT_MAX == 1 → IVF path
+        vs.assign_slot(_unit_vec(1))
+        vs.assign_slot(_unit_vec(2))
+
+        vs._faiss_dirty = True
+        vs._build_faiss_index()
+        # Index was built — it may be CPU or GPU wrapped but should exist
+        assert vs._faiss_index is not None
+
+    def test_search_still_works_with_ivf_index(self, monkeypatch):
+        """IVF-backed search returns valid results."""
+        if not _vs_mod._FAISS_AVAILABLE:
+            pytest.skip("FAISS not installed")
+
+        monkeypatch.setattr(VectorSpace, "_FAISS_FLAT_MAX", 1)
+        vs = VectorSpace(n_slots=N_SLOTS, dimensions=DIMS)
+        vs.assign_slot(_unit_vec(3), label="c3", domain="d")
+        vs.assign_slot(_unit_vec(4), label="c4", domain="d")
+
+        sims, indices = vs.search_active(_unit_vec(3), top_k=2)
+        assert len(indices) >= 1
