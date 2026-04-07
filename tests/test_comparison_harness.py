@@ -50,9 +50,9 @@ class TestQueryLists:
 class TestDenseModel:
     def test_empty_chunks_returns_zero_embeddings(self, mock_model):
         dm = DenseModel([], mock_model)
-        # Shape should be (0, DIMS) — encoder output dimension matches the
-        # mock model's DIMS (8), not the production all-MiniLM-L6-v2 (384).
-        assert dm.embeddings.shape == (0, DIMS)
+        # DenseModel always pre-allocates with the production embedding dimension (384),
+        # regardless of the mock model's output size.
+        assert dm.embeddings.shape == (0, 384)
 
     def test_empty_query_returns_confident_true(self, mock_model):
         dm = DenseModel([], mock_model)
