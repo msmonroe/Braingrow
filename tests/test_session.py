@@ -101,7 +101,9 @@ def tiny_session(tmp_path, monkeypatch):
 # ===========================================================================
 
 class TestSplitIntoChunks:
-    from session import BrainGrowSession as _BS
+    # Removed stale class-level `from session import BrainGrowSession as _BS`
+    # that was dead code and could cause import-order failures.
+    # Each test method imports BrainGrowSession directly as needed.
 
     def test_multiline_returns_lines(self):
         from session import BrainGrowSession
