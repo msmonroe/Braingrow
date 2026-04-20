@@ -6,23 +6,36 @@ Provides DenseModel (always-confident nearest-neighbour) and BrainGrowModel
 
 Demonstrates that hallucination is an architectural property of a saturated
 vector space — not a scale or data-quantity problem.
+
+v2 changes
+----------
+- BrainGrowModel.THRESHOLD raised from 0.40 → 0.60 (consistent with
+  epistemic.py DEFAULT_CONFIDENCE_THRESHOLD). The prior value of 0.40
+  caused fabricated concepts with weak partial matches (e.g. "quantum
+  fermentation" → fermentation chunk, sim=0.4035) to be incorrectly
+  classified as Confident. This was the primary failure mode the
+  architecture is designed to prevent.
+- BrainGrowModel now delegates verdict classification to epistemic.classify()
+  for consistency across all code paths.
+- THRESHOLD exposed as a constructor parameter for UI configurability.
 """
 
 from __future__ import annotations
-import re
+
 from typing import List, Tuple
 
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
+from epistemic import classify, DEFAULT_CONFIDENCE_THRESHOLD, EpistemicState
 from utils import encode_unit_numpy, encode_unit_torch
 from vector_space import VectorSpace
 
 _DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # ---------------------------------------------------------------------------
-# Predefined query sets (copy verbatim from spec)
+# Predefined query sets
 # ---------------------------------------------------------------------------
 
 known_queries: List[str] = [
@@ -43,7 +56,6 @@ unknown_queries: List[str] = [
     "What happened at the Battle of Vektoria",
 ]
 
-
 # ---------------------------------------------------------------------------
 # DenseModel
 # ---------------------------------------------------------------------------
@@ -54,7 +66,7 @@ class DenseModel:
 
     No dormant slots. No confidence threshold. Always returns the nearest
     neighbour regardless of similarity score — this is the hallucination
-    mechanism.
+    mechanism. A saturated store has nowhere to abstain to.
     """
 
     def __init__(
@@ -62,13 +74,6 @@ class DenseModel:
         chunks: List[Tuple[str, str]],
         model: SentenceTransformer,
     ) -> None:
-        """
-        Parameters
-        ----------
-        chunks : list of (text_chunk, domain_label) — identical to what
-                 GrowthEngine ingested into the VectorSpace.
-        model  : shared SentenceTransformer instance (all-MiniLM-L6-v2).
-        """
         self.model = model
         self.labels: List[str] = []
         self.domains: List[str] = []
@@ -84,58 +89,45 @@ class DenseModel:
             norms = np.linalg.norm(embs_raw, axis=1, keepdims=True)
             self.embeddings: np.ndarray = (embs_raw / (norms + 1e-8)).astype(np.float32)
         else:
-            self.embeddings: np.ndarray = np.empty((0, 384), dtype=np.float32)
+            self.embeddings = np.empty((0, 384), dtype=np.float32)
 
     def query(self, text: str) -> dict:
         """
         Encode *text* and return the nearest neighbour regardless of score.
-
-        Returns
-        -------
-        {
-            label      : str,
-            domain     : str,
-            similarity : float,
-            confident  : True,   # always — hallucination mechanism
-        }
+        Always confident — this is the hallucination mechanism.
         """
         if self.embeddings.shape[0] == 0:
             return {"label": "", "domain": "", "similarity": 0.0, "confident": True}
 
         emb_unit = encode_unit_numpy(self.model, text)
-
         sims = self.embeddings @ emb_unit
         best = int(np.argmax(sims))
+
         return {
             "label": self.labels[best],
             "domain": self.domains[best],
             "similarity": round(float(sims[best]), 4),
-            "confident": True,  # always confident — hallucination mechanism
+            "confident": True,
         }
 
     def add_chunks(self, new_chunks: List[Tuple[str, str]]) -> None:
-        """
-        Encode and append *new_chunks* without re-encoding historical data.
-
-        Use this instead of rebuilding DenseModel from scratch after each
-        ingest — reduces encoding cost from O(n_total) to O(n_new) per stage.
-        """
+        """Encode and append *new_chunks* without re-encoding historical data."""
         valid = [(t, d) for t, d in new_chunks if t.strip()]
         if not valid:
             return
         texts = [t for t, _ in valid]
-        embs_raw = self.model.encode(texts, device=_DEVICE, batch_size=512, convert_to_numpy=True)
+        embs_raw = self.model.encode(
+            texts, device=_DEVICE, batch_size=512, convert_to_numpy=True
+        )
         norms = np.linalg.norm(embs_raw, axis=1, keepdims=True)
         new_embs = (embs_raw / (norms + 1e-8)).astype(np.float32)
-        new_labels = [t[:60].strip() for t in texts]
-        new_domains = [d for _, d in valid]
         self.embeddings = (
             np.vstack([self.embeddings, new_embs])
             if self.embeddings.shape[0] > 0
             else new_embs
         )
-        self.labels.extend(new_labels)
-        self.domains.extend(new_domains)
+        self.labels.extend([t[:60].strip() for t in texts])
+        self.domains.extend([d for _, d in valid])
 
 
 # ---------------------------------------------------------------------------
@@ -146,25 +138,32 @@ class BrainGrowModel:
     """
     Wraps the existing VectorSpace instance.
 
-    Returns honest uncertainty when a query lands near dormant space
-    (max similarity < THRESHOLD) rather than forcing a nearest-neighbour
-    answer.
+    Routes queries exclusively through active slots. Delegates epistemic
+    classification to epistemic.classify(), which enforces the three-tier
+    state: CONFIDENT / HONEST_UNKNOWN / OUT_OF_BOUNDS.
+
+    The confidence threshold (default 0.60) is consistent with
+    epistemic.DEFAULT_CONFIDENCE_THRESHOLD. This threshold was chosen
+    empirically: all-MiniLM-L6-v2 cosine similarities above 0.60 indicate
+    strong semantic overlap; values below 0.40 are effectively orthogonal.
+    The 0.40–0.60 band is treated conservatively as HONEST_UNKNOWN to
+    prevent partial-match false positives (e.g. "quantum fermentation"
+    partially matching a fermentation chunk at sim=0.40).
     """
 
-    THRESHOLD: float = 0.40
-
-    def __init__(self, vector_space: VectorSpace, model: SentenceTransformer) -> None:
+    def __init__(
+        self,
+        vector_space: VectorSpace,
+        model: SentenceTransformer,
+        confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
+    ) -> None:
         self.vs = vector_space
         self.model = model
+        self.confidence_threshold = confidence_threshold
 
     def query(self, text: str) -> dict:
         """
-        Route *text* through active slots only.
-
-        Verdict logic:
-          - max_similarity < THRESHOLD          → HONEST (uncertain)
-          - 'negative' in nearest domain         → ⚠️ BOUNDARY VIOLATION
-          - otherwise                            → ✓ Confident
+        Route *text* through active slots and classify epistemically.
 
         Returns
         -------
@@ -173,50 +172,76 @@ class BrainGrowModel:
             domain     : str,
             similarity : float,
             confident  : bool,
-            verdict    : str,
+            verdict    : str,   # human-readable: "✓ Confident" / "HONEST (uncertain)" / "⚠️ BOUNDARY VIOLATION"
+            state      : str,   # EpistemicState enum value for programmatic use
         }
         """
         active_mask = self.vs.get_active_mask()
+        active_count = int(active_mask.sum().item())
+        dormant_count = int((~active_mask).sum().item())
 
-        if not active_mask.any():
+        if active_count == 0:
             return {
                 "label": "no learned representation found",
                 "domain": "",
                 "similarity": 0.0,
                 "confident": False,
                 "verdict": "HONEST (uncertain)",
+                "state": EpistemicState.HONEST_UNKNOWN.value,
             }
 
         emb_unit = encode_unit_torch(self.model, text)
-
         active_indices = active_mask.nonzero(as_tuple=True)[0]
         active_vecs = self.vs.slots[active_indices]
         sims = active_vecs @ emb_unit
 
-        best_local = int(sims.argmax().item())
-        best_sim = float(sims[best_local].item())
-        slot_idx = int(active_indices[best_local].item())
-        nearest_domain = self.vs.slot_domains.get(slot_idx, "unknown")
+        top_k = min(5, active_count)
+        top_vals, top_local = sims.topk(top_k)
 
-        if best_sim < self.THRESHOLD:
-            verdict = "HONEST (uncertain)"
-            confident = False
-        elif nearest_domain in self.vs.negative_domains:
+        matches = []
+        for val, local_idx in zip(top_vals.tolist(), top_local.tolist()):
+            slot_idx = int(active_indices[local_idx].item())
+            matches.append({
+                "slot_idx": slot_idx,
+                "label": self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}"),
+                "domain": self.vs.slot_domains.get(slot_idx, "unknown"),
+                "similarity": round(float(val), 4),
+                "activation": round(float(self.vs.activation[slot_idx].item()), 4),
+            })
+
+        nearest_domain = matches[0]["domain"] if matches else ""
+        boundary_violation = nearest_domain in self.vs.negative_domains
+
+        router_result = {
+            "matches": matches,
+            "active_count": active_count,
+            "dormant_count": dormant_count,
+            "boundary_violation": boundary_violation,
+            "nearest_domain": nearest_domain,
+        }
+
+        epistemic = classify(router_result, confidence_threshold=self.confidence_threshold)
+
+        if epistemic.state == EpistemicState.CONFIDENT:
+            verdict = "✓ Confident"
+            label = matches[0]["label"] if matches else ""
+            confident = True
+        elif epistemic.state == EpistemicState.OUT_OF_BOUNDS:
             verdict = "⚠️ BOUNDARY VIOLATION"
+            label = matches[0]["label"] if matches else ""
             confident = True
         else:
-            verdict = "✓ Confident"
-            confident = True
+            verdict = "HONEST (uncertain)"
+            label = "no learned representation found"
+            confident = False
 
         return {
-            "label": (
-                "no learned representation found" if not confident
-                else self.vs.slot_labels.get(slot_idx, f"slot_{slot_idx}")
-            ),
+            "label": label,
             "domain": nearest_domain,
-            "similarity": round(best_sim, 4),
+            "similarity": matches[0]["similarity"] if matches else 0.0,
             "confident": confident,
             "verdict": verdict,
+            "state": epistemic.state.value,
         }
 
 
@@ -229,6 +254,8 @@ def run_comparison(
     braingrow_model: BrainGrowModel,
 ) -> None:
     """Print a formatted side-by-side comparison table for all query types."""
+    threshold = braingrow_model.confidence_threshold
+
     groups = [
         ("KNOWN QUERIES", known_queries),
         ("PARTIAL QUERIES", partial_queries),
@@ -237,19 +264,22 @@ def run_comparison(
 
     for group_name, queries in groups:
         print(f"\n=== {group_name} ===")
-        print(f"{'Query':<42} {'Dense':>25} {'BrainGrow':>25}")
-        print("-" * 95)
+        print(f"{'Query':<42} {'Dense':>25} {'BrainGrow':>30}")
+        print("-" * 100)
         for q in queries:
             d = dense_model.query(q)
             b = braingrow_model.query(q)
+
+            # Dense is hallucinating if it returns confident on a low-sim result
             d_tag = (
                 "HALLUCINATED"
-                if d["confident"] and d["similarity"] < BrainGrowModel.THRESHOLD
+                if d["similarity"] < threshold
                 else "confident"
             )
             b_tag = b["verdict"]
+
             print(
                 f"{q[:41]:<42} "
-                f"{d['similarity']:.3f} {d_tag:<15} "
-                f"{b['similarity']:.3f} {b_tag}"
+                f"{d['similarity']:.4f} {d_tag:<15} "
+                f"{b['similarity']:.4f} {b_tag}"
             )
