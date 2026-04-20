@@ -1,6 +1,6 @@
 # BrainGrow
 
-**Developmental AI Architecture — Proof of Concept**  
+**Developmental AI Architecture — research prototype with preliminary results**  
 Vektas Solutions · April 2026 · Author: Matthew Monroe
 
 ![Python](https://img.shields.io/badge/python-3.11+-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Status](https://img.shields.io/badge/status-research--poc-orange) ![Tests](https://img.shields.io/badge/tests-pytest-brightgreen)
