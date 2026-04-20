@@ -1,0 +1,3014 @@
+{
+  "seed": 42,
+  "threshold": 0.6,
+  "encoder": "all-MiniLM-L6-v2",
+  "corpus_size": 30,
+  "systems": {
+    "BrainGrow": [
+      {
+        "query": "Who invented the Vektas theorem?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3185,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Avalon Drosselmeyer.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2681,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Thalmurian Uprising?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3218,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Ashvale projection?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1568,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Valenburg lemma?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2814,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Zorbania?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.183,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the capital of Vektoria?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1637,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Kessarine Accords?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1908,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the capital of Trelavia?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1535,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Grelthwood Massacre?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1683,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Kessarine?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1514,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who was Tarquin Ashvale?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1738,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Bartholomew Kesslin.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2222,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Brennenkamp identity.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1635,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Quirindor?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1294,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Corvin Thrax.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2352,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Second Xintharian War?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3461,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Kesslin constant?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1308,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Vektoria?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.167,
+        "nearest_label": "A roux is a mixture of equal parts flour and fat, cooked tog",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the Second Xintharian War take place?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2932,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who was Marisol Chantico-Vel?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1514,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Thrax conjecture?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.276,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Chantico regularizer?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2137,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Lyra Orsini-Kul.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1421,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "When did the Morspike Insurrection take place?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.397,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of braise-prime.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4397,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented emulsion-delta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4209,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the mitochondria-delta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4326,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who invented revolution-inverse?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4225,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does fermentation of Kesslin work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4803,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of empire of Kesslin.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3117,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of emulsion-inverse.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.5276,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented reformation coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3009,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of succession-delta.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3845,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of monarchy of the Second Order.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3847,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the tempering coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1832,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the history of chromosome coefficient.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3578,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the reduction-theta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1333,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of reduction-theta.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2426,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the revolution-inverse?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4286,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented relativistic procedure?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2514,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the relativistic coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2312,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "How does revolution coefficient work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3501,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does molecular-inverse work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2361,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of chromosome phenomenon.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4654,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Describe the history of enzyme procedure.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3608,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does julienne procedure work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2955,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does empire-delta work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.298,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of federation paradigm.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2344,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who invented caramelization-theta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3044,
+        "nearest_label": "Caramelizing onions involves slowly cooking them over low he",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the difference between baking and roasting?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8371,
+        "nearest_label": "Baking typically involves moist heat in an enclosed oven, wh",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does the immune system work?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.693,
+        "nearest_label": "The immune system defends the body against pathogens using w",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "When did World War II end?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7283,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What was the Roman Empire?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6369,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the Maillard reaction?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8291,
+        "nearest_label": "The Maillard reaction is a chemical reaction between amino a",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do you sear a steak?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6235,
+        "nearest_label": "Searing a steak requires a very hot pan to create a flavorfu",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is an atom?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.766,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What does it mean to deglaze a pan?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7513,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the Renaissance begin?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7425,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does DNA replicate?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6314,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who was Napoleon Bonaparte?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6935,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is photosynthesis?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7788,
+        "nearest_label": "Photosynthesis is the process by which green plants convert",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What was the Cold War?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7921,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make a roux?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6882,
+        "nearest_label": "A roux is a mixture of equal parts flour and fat, cooked tog",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is entropy?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.795,
+        "nearest_label": "Entropy is a measure of disorder in a thermodynamic system,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What caused the fall of Rome?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7745,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you caramelize onions?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7711,
+        "nearest_label": "Caramelizing onions involves slowly cooking them over low he",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the French Revolution happen?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.736,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is Newton's second law?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8241,
+        "nearest_label": "Newton's second law states that the force acting on an objec",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "How do you make bread rise?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7022,
+        "nearest_label": "Bread rises because yeast consumes sugars and produces carbo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Julius Caesar?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6957,
+        "nearest_label": "Julius Caesar was a Roman general and statesman whose assass",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the theory of evolution?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7114,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is an emulsion in cooking?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7319,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do cells divide?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.5677,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": false
+      },
+      {
+        "query": "What causes gravity?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6346,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What was the Taiping Rebellion?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.256,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is dark matter?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3641,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain quantum entanglement in layman's terms.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2782,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Defenestration of Prague?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2744,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Higgs boson and why it matters.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2282,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What caused the collapse of the Bronze Age civilizations?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4855,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make a proper beurre blanc?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2314,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who were the Picts?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1442,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Japanese cutting technique 'usuzukuri'.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2969,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Cyrus the Great?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2377,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make kimchi at home?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2988,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the Neapolitan ragu technique?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2366,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What was the Hundred Years' War?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3241,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you clarify butter into ghee?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4728,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is a tardigrade?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1896,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What are prions and how do they differ from viruses?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2314,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the technique for confiting duck?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1963,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What was the Treaty of Westphalia?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2571,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do mRNA vaccines work?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3747,
+        "nearest_label": "The immune system defends the body against pathogens using w",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is spherification in molecular gastronomy?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2965,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do you temper chocolate using the tabling method?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2808,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Eleanor of Aquitaine?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2029,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is epigenetic inheritance?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4319,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the sous-vide method for short ribs?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4403,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is CRISPR-Cas9 gene editing?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3186,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      }
+    ],
+    "TorchFlatThreshold": [
+      {
+        "query": "Who invented the Vektas theorem?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3185,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Avalon Drosselmeyer.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2681,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Thalmurian Uprising?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3218,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Ashvale projection?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1568,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Valenburg lemma?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2814,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Zorbania?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.183,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the capital of Vektoria?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1637,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Kessarine Accords?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1908,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the capital of Trelavia?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1535,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Grelthwood Massacre?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1683,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Kessarine?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1514,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who was Tarquin Ashvale?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1738,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Bartholomew Kesslin.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2222,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Brennenkamp identity.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1635,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Quirindor?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1294,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Corvin Thrax.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2352,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Second Xintharian War?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3461,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Kesslin constant?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1308,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Vektoria?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.167,
+        "nearest_label": "A roux is a mixture of equal parts flour and fat, cooked tog",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the Second Xintharian War take place?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2932,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who was Marisol Chantico-Vel?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1514,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Thrax conjecture?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.276,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Chantico regularizer?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2137,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Lyra Orsini-Kul.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1421,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "When did the Morspike Insurrection take place?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.397,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of braise-prime.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4397,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented emulsion-delta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4209,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the mitochondria-delta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4326,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who invented revolution-inverse?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4225,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does fermentation of Kesslin work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4803,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of empire of Kesslin.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3117,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of emulsion-inverse.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.5276,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented reformation coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3009,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of succession-delta.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3845,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of monarchy of the Second Order.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3847,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the tempering coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1832,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the history of chromosome coefficient.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3578,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the reduction-theta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1333,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of reduction-theta.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2426,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the revolution-inverse?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4286,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented relativistic procedure?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2514,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the relativistic coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2312,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "How does revolution coefficient work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3501,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does molecular-inverse work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2361,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of chromosome phenomenon.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4654,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Describe the history of enzyme procedure.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3608,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does julienne procedure work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2955,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does empire-delta work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.298,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of federation paradigm.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2344,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who invented caramelization-theta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3044,
+        "nearest_label": "Caramelizing onions involves slowly cooking them over low he",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the difference between baking and roasting?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8371,
+        "nearest_label": "Baking typically involves moist heat in an enclosed oven, wh",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does the immune system work?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.693,
+        "nearest_label": "The immune system defends the body against pathogens using w",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "When did World War II end?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7283,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What was the Roman Empire?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6369,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the Maillard reaction?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8291,
+        "nearest_label": "The Maillard reaction is a chemical reaction between amino a",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do you sear a steak?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6235,
+        "nearest_label": "Searing a steak requires a very hot pan to create a flavorfu",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is an atom?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.766,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What does it mean to deglaze a pan?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7513,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the Renaissance begin?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7425,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does DNA replicate?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6314,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who was Napoleon Bonaparte?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6935,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is photosynthesis?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7788,
+        "nearest_label": "Photosynthesis is the process by which green plants convert",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What was the Cold War?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7921,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make a roux?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6882,
+        "nearest_label": "A roux is a mixture of equal parts flour and fat, cooked tog",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is entropy?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.795,
+        "nearest_label": "Entropy is a measure of disorder in a thermodynamic system,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What caused the fall of Rome?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7745,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you caramelize onions?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7711,
+        "nearest_label": "Caramelizing onions involves slowly cooking them over low he",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the French Revolution happen?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.736,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is Newton's second law?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8241,
+        "nearest_label": "Newton's second law states that the force acting on an objec",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "How do you make bread rise?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7022,
+        "nearest_label": "Bread rises because yeast consumes sugars and produces carbo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Julius Caesar?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6957,
+        "nearest_label": "Julius Caesar was a Roman general and statesman whose assass",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the theory of evolution?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7114,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is an emulsion in cooking?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7319,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do cells divide?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.5677,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": false
+      },
+      {
+        "query": "What causes gravity?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6346,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What was the Taiping Rebellion?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.256,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is dark matter?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3641,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain quantum entanglement in layman's terms.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2782,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Defenestration of Prague?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2744,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Higgs boson and why it matters.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2282,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What caused the collapse of the Bronze Age civilizations?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4855,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make a proper beurre blanc?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2314,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who were the Picts?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1442,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Japanese cutting technique 'usuzukuri'.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2969,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Cyrus the Great?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2377,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make kimchi at home?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2988,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the Neapolitan ragu technique?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2366,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What was the Hundred Years' War?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3241,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you clarify butter into ghee?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4728,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is a tardigrade?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1896,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What are prions and how do they differ from viruses?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2314,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the technique for confiting duck?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1963,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What was the Treaty of Westphalia?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2571,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do mRNA vaccines work?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3747,
+        "nearest_label": "The immune system defends the body against pathogens using w",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is spherification in molecular gastronomy?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2965,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do you temper chocolate using the tabling method?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2808,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Eleanor of Aquitaine?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2029,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is epigenetic inheritance?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4319,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the sous-vide method for short ribs?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4403,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is CRISPR-Cas9 gene editing?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3186,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      }
+    ],
+    "FAISSFlatThreshold": [
+      {
+        "query": "Who invented the Vektas theorem?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3185,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Avalon Drosselmeyer.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2681,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Thalmurian Uprising?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3218,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Ashvale projection?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1568,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Valenburg lemma?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2814,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Zorbania?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.183,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the capital of Vektoria?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1637,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Kessarine Accords?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1908,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the capital of Trelavia?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1535,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Grelthwood Massacre?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1683,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Kessarine?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1514,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who was Tarquin Ashvale?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1738,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Bartholomew Kesslin.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2222,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Brennenkamp identity.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1635,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Quirindor?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1294,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Corvin Thrax.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2352,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Second Xintharian War?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3461,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Kesslin constant?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1308,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What language is spoken in Vektoria?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.167,
+        "nearest_label": "A roux is a mixture of equal parts flour and fat, cooked tog",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the Second Xintharian War take place?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2932,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who was Marisol Chantico-Vel?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1514,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Thrax conjecture?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.276,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented the Chantico regularizer?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2137,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the legacy of Lyra Orsini-Kul.",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1421,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "When did the Morspike Insurrection take place?",
+        "bucket": "PURE_NONSENSE",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.397,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of braise-prime.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4397,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented emulsion-delta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4209,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the mitochondria-delta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4326,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who invented revolution-inverse?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4225,
+        "nearest_label": "The Industrial Revolution transformed manufacturing, transpo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does fermentation of Kesslin work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4803,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of empire of Kesslin.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3117,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of emulsion-inverse.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.5276,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who invented reformation coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3009,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of succession-delta.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3845,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of monarchy of the Second Order.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3847,
+        "nearest_label": "The Magna Carta, signed in 1215, established the principle t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the tempering coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1832,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Describe the history of chromosome coefficient.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3578,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the reduction-theta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1333,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of reduction-theta.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2426,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the revolution-inverse?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4286,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Who invented relativistic procedure?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2514,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the relativistic coefficient?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2312,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "How does revolution coefficient work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3501,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does molecular-inverse work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2361,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of chromosome phenomenon.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4654,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Describe the history of enzyme procedure.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3608,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does julienne procedure work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2955,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does empire-delta work?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.298,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the theory of federation paradigm.",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2344,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who invented caramelization-theta?",
+        "bucket": "LEXICAL_OVERLAP",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3044,
+        "nearest_label": "Caramelizing onions involves slowly cooking them over low he",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the difference between baking and roasting?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8371,
+        "nearest_label": "Baking typically involves moist heat in an enclosed oven, wh",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How does the immune system work?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.693,
+        "nearest_label": "The immune system defends the body against pathogens using w",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "When did World War II end?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7283,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What was the Roman Empire?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6369,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the Maillard reaction?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8291,
+        "nearest_label": "The Maillard reaction is a chemical reaction between amino a",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do you sear a steak?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6235,
+        "nearest_label": "Searing a steak requires a very hot pan to create a flavorfu",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is an atom?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.766,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What does it mean to deglaze a pan?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7513,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the Renaissance begin?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7425,
+        "nearest_label": "The Renaissance was a cultural movement that began in Italy",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How does DNA replicate?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6314,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Who was Napoleon Bonaparte?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6935,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is photosynthesis?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7788,
+        "nearest_label": "Photosynthesis is the process by which green plants convert",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What was the Cold War?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7921,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make a roux?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6882,
+        "nearest_label": "A roux is a mixture of equal parts flour and fat, cooked tog",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is entropy?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.795,
+        "nearest_label": "Entropy is a measure of disorder in a thermodynamic system,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What caused the fall of Rome?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7745,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you caramelize onions?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7711,
+        "nearest_label": "Caramelizing onions involves slowly cooking them over low he",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "When did the French Revolution happen?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.736,
+        "nearest_label": "The French Revolution began in 1789 and led to the fall of t",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is Newton's second law?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.8241,
+        "nearest_label": "Newton's second law states that the force acting on an objec",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "How do you make bread rise?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7022,
+        "nearest_label": "Bread rises because yeast consumes sugars and produces carbo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Julius Caesar?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6957,
+        "nearest_label": "Julius Caesar was a Roman general and statesman whose assass",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is the theory of evolution?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7114,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is an emulsion in cooking?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.7319,
+        "nearest_label": "An emulsion in cooking combines two liquids that normally do",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do cells divide?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.5677,
+        "nearest_label": "Mitosis is the process by which a eukaryotic cell divides in",
+        "nearest_domain": "science",
+        "correct": false
+      },
+      {
+        "query": "What causes gravity?",
+        "bucket": "IN_DOMAIN",
+        "expected": "CONFIDENT",
+        "verdict": "CONFIDENT",
+        "similarity": 0.6346,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What was the Taiping Rebellion?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.256,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is dark matter?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3641,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "Explain quantum entanglement in layman's terms.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2782,
+        "nearest_label": "Atoms are the basic units of matter, consisting of protons,",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What happened at the Defenestration of Prague?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2744,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Higgs boson and why it matters.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2282,
+        "nearest_label": "Einstein's theory of general relativity describes gravity as",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What caused the collapse of the Bronze Age civilizations?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4855,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make a proper beurre blanc?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2314,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who were the Picts?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1442,
+        "nearest_label": "World War II ended in 1945 with the surrender of Japan follo",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "Explain the Japanese cutting technique 'usuzukuri'.",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2969,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Cyrus the Great?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2377,
+        "nearest_label": "The Roman Empire was one of the largest and most influential",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you make kimchi at home?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2988,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is the Neapolitan ragu technique?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2366,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What was the Hundred Years' War?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3241,
+        "nearest_label": "The fall of Rome in 476 AD was caused by a combination of po",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do you clarify butter into ghee?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4728,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is a tardigrade?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1896,
+        "nearest_label": "The theory of evolution explains how species change over tim",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What are prions and how do they differ from viruses?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2314,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the technique for confiting duck?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.1963,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What was the Treaty of Westphalia?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2571,
+        "nearest_label": "The Cold War was a geopolitical tension between the United S",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "How do mRNA vaccines work?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3747,
+        "nearest_label": "The immune system defends the body against pathogens using w",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is spherification in molecular gastronomy?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2965,
+        "nearest_label": "Fermentation is the metabolic process by which microorganism",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "How do you temper chocolate using the tabling method?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2808,
+        "nearest_label": "Deglazing a pan involves adding liquid to dissolve the flavo",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "Who was Eleanor of Aquitaine?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.2029,
+        "nearest_label": "Napoleon Bonaparte was a French military leader who rose to",
+        "nearest_domain": "history",
+        "correct": true
+      },
+      {
+        "query": "What is epigenetic inheritance?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4319,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      },
+      {
+        "query": "What is the sous-vide method for short ribs?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.4403,
+        "nearest_label": "Braising is a cooking technique that combines searing and sl",
+        "nearest_domain": "cooking",
+        "correct": true
+      },
+      {
+        "query": "What is CRISPR-Cas9 gene editing?",
+        "bucket": "NEAR_DOMAIN",
+        "expected": "HONEST_UNKNOWN",
+        "verdict": "HONEST_UNKNOWN",
+        "similarity": 0.3186,
+        "nearest_label": "DNA carries the genetic instructions used in the growth, dev",
+        "nearest_domain": "science",
+        "correct": true
+      }
+    ]
+  }
+}
