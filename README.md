@@ -1,118 +1,96 @@
 # BrainGrow
 
-**Developmental AI Architecture — Research Prototype**  
-Vektas Solutions · April 2026 · Author: Matthew Monroe
+**A Sparse Vector Store with Lifecycle-Based Capacity Management and Explicit Abstention**
+Vektas Solutions · Author: Matthew Monroe
 
 ---
 
-## Overview
+## Status
 
-Large language models conflate knowledge and ignorance within the same weight matrices, producing confident outputs regardless of whether a query falls within their training distribution. BrainGrow proposes a different approach: make epistemic boundaries structural rather than post-hoc.
+This project began as an attempt to test whether epistemic abstention (i.e., a
+system refusing to answer queries that fall outside its training distribution)
+could be made *structural* — a property of the architecture rather than of a
+learned or post-hoc threshold. An ablation experiment (see **RAG Comparison**
+below) disproved that hypothesis at the corpus scales tested: a flat vector
+store with the same encoder and the same similarity threshold produces
+identical verdicts on 100/100 queries across three systems.
 
-BrainGrow pre-allocates a sparse vector space of 200,000 slots initialized as dormant unit vectors. Knowledge is introduced through staged ingestion — text is encoded by a frozen sentence encoder and assigned to dormant slots, which transition to active. Active slots are subject to use-dependent reinforcement and decay. Pruning passes reclaim low-activation slots for future domain expansion. Queries are routed exclusively through active slots, producing one of three explicit epistemic states:
+What remains is still a useful engineering artifact — a managed vector store
+with a lifecycle-based capacity model, persistent state, and a three-state
+query output (`Confident` / `Honest Unknown` / `Out-of-Bounds`) as a
+first-class API. The "developmental architecture" framing has been removed
+from this README; the code itself is unchanged and reproduces the reported
+behavior.
 
-- **Confident** — high-similarity match (≥ 0.60 cosine) within an active domain
-- **Honest Unknown** — no active slot exceeds the confidence threshold; the system abstains
-- **Out-of-Bounds** — nearest match falls within a registered negative domain
-
-These states are enforced structurally by the architecture. No separate classifier is trained. No post-hoc alignment is applied.
-
-> **Core finding:** Hallucination is an architectural property of a saturated vector space, not a scale or data-quantity problem. A fully-occupied store has nowhere to abstain to. BrainGrow's dormant capacity is the abstention mechanism.
+If you're evaluating this project as a contribution to AI safety or
+hallucination research, read the **RAG Comparison** section first so you
+understand what the experiment did and did not show.
 
 ---
 
-## Experimental Results
+## What This Repo Is
 
-### Slot Assignment Geometry
+A Python implementation of a sparse vector store that pre-allocates a fixed
+slot capacity, ingests text into it via a frozen sentence encoder, manages
+slot activation over time, and routes queries through active slots with a
+similarity threshold for abstention. The system runs headlessly or through
+a Gradio UI with six tabs for interactive exploration.
 
-Sequential and semantic-aware slot assignment produce identical separability metrics over the domains tested (silhouette score 0.1256, inter-centroid distance 0.6032, separability ratio 0.6739 in both conditions). The frozen sentence encoder is responsible for the semantic topology of the active space. BrainGrow's contribution is the activation lifecycle and routing machinery built on top of that topology, not learned geometric placement.
+The engineering ideas that are still interesting independent of the original
+epistemics framing:
 
-See `experiments/slot_assignment_comparison.py` to reproduce.
-
-### Hallucination Comparison (Tab 4)
-
-Four entirely fabricated queries were run against both the Dense baseline and BrainGrow after ingesting science, history, and cooking domains:
-
-| Query | Dense Verdict | Dense Sim | BrainGrow Verdict | BrainGrow Sim |
-|---|---|---|---|---|
-| What is the capital of Zorbania | HALLUCINATED | 0.1468 | HONEST (uncertain) | 0.1468 |
-| Explain the Mendelsohn-Vektas theorem | HALLUCINATED | 0.1893 | HONEST (uncertain) | 0.1893 |
-| Who invented quantum fermentation | HALLUCINATED | 0.4035 | HONEST (uncertain) | 0.4035 |
-| What happened at the Battle of Vektoria | HALLUCINATED | 0.2181 | HONEST (uncertain) | 0.2181 |
-
-The Dense baseline returns a confident nearest-neighbor match in 4/4 cases. BrainGrow correctly abstains in 4/4 cases. Note the third query: "quantum fermentation" achieves a cosine similarity of 0.4035 against a real fermentation chunk due to lexical overlap. The 0.60 confidence threshold correctly classifies this as Honest Unknown, preventing a false-positive confident response on a fabricated concept.
+- **Pre-allocated capacity with O(1) dormant-slot allocation** via a deque,
+  avoiding live reallocation during ingestion.
+- **Use-dependent lifecycle**: slots are reinforced on query hits, decayed
+  periodically, and pruned below a configurable activation threshold. This
+  is a memory-management pattern for long-running retrieval systems, not an
+  epistemics mechanism.
+- **Near-duplicate reinforcement**: incoming embeddings above a cosine
+  threshold against an existing active slot reinforce that slot rather than
+  claiming a new one.
+- **Three-state query output**: `Confident`, `Honest Unknown` (sub-threshold
+  similarity), and `Out-of-Bounds` (nearest match falls in a registered
+  negative domain). This is a cleaner output API than most RAG pipelines
+  surface by default, even if it does not constitute a novel abstention
+  mechanism.
+- **`.bgstate` persistence**: full snapshot of embeddings + activations +
+  metadata for interrupted-experiment resumption.
 
 ---
 
 ## Architecture
 
 ```
-[ Pre-allocate 200,000 vector slots — random unit vectors, all dormant ]
+[ Pre-allocate N vector slots — large, mostly dormant ]
           ↓
-[ Stage 1: Encode Domain A → assign to dormant slots → activate ]
+[ Ingest: encode text chunks, assign to dormant slots, mark active ]
           ↓
-[ Stage 2: Encode Domain B → grows into NEW unused slots ]
+[ Query: encode, cosine-similarity against active slots only ]
           ↓
-[ Query: cosine similarity against active slots only ]
+[ Threshold: similarity ≥ 0.60 → Confident; else Honest Unknown ]
           ↓
-[ Epistemic classification: Confident / Honest Unknown / Out-of-Bounds ]
+[ Negative-domain check: nearest match in negative domain → Out-of-Bounds ]
           ↓
-[ Lifecycle: reinforce on hit, decay over time, prune below threshold ]
+[ Lifecycle: reinforce on hit, periodic decay, prune below threshold ]
           ↓
-[ Expansion: pruned slots return to dormant pool for future domains ]
+[ Pruned slots return to dormant pool, available for future ingestion ]
 ```
 
-### The Six Tabs
+The ablation showed that the abstention verdict is produced entirely by the
+threshold step. The lifecycle steps are useful for long-run capacity
+management but do not contribute to the abstention decision on a per-query
+basis.
 
-| Tab | What It Demonstrates |
-|---|---|
-| **Grow** | Pre-allocated vector space. Knowledge grows into it progressively. Active vs. dormant slots visualized in real time via UMAP / PCA. Includes Stage Diff and Refresh UMAP controls. |
-| **Query** | Routing through active slots only. New domains grow into previously dormant space without overwriting existing knowledge. |
-| **Prune** | Use-dependent pruning pass. Dormant slots decay. Active slots strengthen. Before/after comparison visualized. |
-| **Compare** | Hallucination demo. Runs identical queries against a saturated DenseModel and BrainGrow side-by-side. |
-| **Network** | Save / load complete network state as `.bgstate` files. Autosave after every Ingest Stage. |
-| **TinyStories** | Scale test against the `roneneldan/TinyStories` corpus — up to 100,000 story snippets across 200,000 slots in three progressive stages. |
+### The Six Tabs (Gradio UI)
 
----
-
-## Project Structure
-
-```
-braingrow/
-├── main.py                       # Gradio app entry point (6-tab UI)
-├── session.py                    # BrainGrowSession — all business logic (v2)
-├── vector_space.py               # Pre-allocation, activation lifecycle, pruning (v2)
-├── growth_engine.py              # Staged ingestion, batch encoding, slot assignment
-├── query_router.py               # Routes queries through active slots only (v2)
-├── epistemic.py                  # Three-tier epistemic classifier (new in v2)
-├── comparison_harness.py         # DenseModel vs BrainGrow comparison (v2, threshold fixed)
-├── sample_data.py                # Curated demo corpus — reproduces paper results exactly
-├── tinystories_loader.py         # TinyStories data pipeline (Tab 6)
-├── visualizer.py                 # UMAP projection & Plotly charts
-├── instrumentation.py            # Optional timing / error tracing (BRAINGROW_TRACE=1)
-├── utils.py                      # Shared unit-normalised encoding utilities
-├── requirements.txt              # Core Python dependencies
-├── saves/                        # .bgstate network snapshots (autosave target)
-├── tests/                        # Pytest suite (one test file per module)
-└── experiments/
-    └── slot_assignment_comparison.py   # v1 vs v2 slot assignment geometry experiment
-```
-
----
-
-## Key Design Decisions
-
-| Decision | Rationale |
-|---|---|
-| 200,000 pre-allocated slots | Sufficient headroom for TinyStories full-scale run without live reallocation. |
-| `all-MiniLM-L6-v2` (384-dim) | Compact, fast, well-calibrated for semantic similarity at CPU speeds. |
-| Confidence threshold 0.60 | Empirically chosen for this encoder: above 0.60 indicates strong overlap; the 0.40–0.60 band is conservatively treated as uncertain to prevent partial-match false positives. |
-| Reinforce step 0.10, decay 0.005 | Produces stable activation dynamics across TinyStories ingestion without rapid slot exhaustion or over-pruning. |
-| Prune threshold 0.20 | Removes genuinely dormant slots while preserving concepts queried at least twice. |
-| Thread-safe `RLock` | Gradio's concurrent callbacks can write without race conditions. |
-| `BrainGrowSession` class | All state and logic isolated from Gradio; independently testable. |
-| `.bgstate` persistence | Full snapshot (embeddings + activations + metadata) prevents data loss on long runs. |
-| `epistemic.py` as separate module | Epistemic classification is independently testable and consistently applied across all code paths. |
+| Tab | Purpose |
+| --- | --- |
+| **Grow** | Ingest text into the pre-allocated space. Real-time UMAP shows active vs. dormant slots. |
+| **Query** | Route queries through active slots. Returns verdict, nearest match, similarity. |
+| **Prune** | Run a pruning pass. Low-activation slots return to the dormant pool. |
+| **Compare** | Side-by-side hallucination demo: BrainGrow vs. a no-threshold retrieval baseline (note: this is NOT a comparison against a true dense language model — see RAG Comparison section). |
+| **Network** | Save and load `.bgstate` snapshots. Autosave after each ingestion stage. |
+| **TinyStories** | Scale test against the `roneneldan/TinyStories` corpus. Staged runs from smoke test (~1k chunks) through full scale (100k chunks). |
 
 ---
 
@@ -122,37 +100,43 @@ braingrow/
 - PyTorch 2.x (CPU or CUDA)
 - sentence-transformers
 - Gradio 4+
-- Plotly
-- UMAP-learn
-- NumPy
-- scikit-learn
-- datasets *(optional — required for Tab 6 TinyStories only)*
+- Plotly, UMAP-learn, NumPy, scikit-learn
+- `datasets` *(optional — required for the TinyStories tab only)*
+- `faiss-cpu` *(optional — required for the FAISS ablation baseline)*
 
 ---
 
 ## Setup
 
 ```bash
-# Clone the repo, then:
+# Clone / download the project, then:
 cd braingrow
 
+# Create a virtual environment
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
+# Install core dependencies
 pip install -r requirements.txt
 
-# PyTorch (CPU build — sufficient for all experiments):
+# PyTorch (CPU build is sufficient for the POC):
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 
 # Optional: TinyStories scale experiment (Tab 6)
 pip install datasets
 
+# Optional: FAISS baseline for the RAG comparison experiment
+pip install faiss-cpu
+
+# Launch the Gradio UI
 python main.py
 ```
 
 Then open the URL printed in the console (default: `http://localhost:7860`).
 
 ### Tracing / Instrumentation
+
+To enable verbose timing and error traces during development:
 
 ```bash
 BRAINGROW_TRACE=1 python main.py
@@ -163,139 +147,212 @@ BRAINGROW_TRACE=1 BRAINGROW_LOG=braingrow.log python main.py
 
 ---
 
-## Reproducing the Paper Results
+## RAG Comparison (the ablation experiment)
 
-The sample corpus used in all hallucination comparison experiments is in `sample_data.py`. To reproduce the Tab 4 results exactly:
+This is the experiment that tested whether BrainGrow's abstention behavior
+comes from its lifecycle machinery or from the similarity threshold alone.
 
-**Step 1 — Ingest Stage 1 (Science)**
+### What it does
 
-Go to Tab 1 — Grow. Paste the following into the text box, set domain label to `science`, and click Ingest Stage:
+Runs 100 fabricated queries against three systems — **BrainGrow**, a
+**torch-tensor flat store + threshold**, and a **FAISS `IndexFlatIP` +
+threshold** — using the same encoder (`all-MiniLM-L6-v2`), the same 0.60
+threshold, and the same 30-chunk 3-domain corpus. Then compares
+verdict-by-verdict.
 
-```
-Photosynthesis converts light energy into chemical energy, using carbon dioxide and water to produce glucose and oxygen through reactions occurring in the chloroplasts of plant cells.
-DNA replication is a semi-conservative process where each strand of the double helix serves as a template, producing two identical daughter molecules through the action of DNA polymerase.
-Newton's third law states that for every action there is an equal and opposite reaction — the fundamental principle behind rocket propulsion and collision dynamics.
-Black holes form when massive stars collapse under their own gravity, creating a singularity where spacetime curvature becomes infinite and escape velocity exceeds the speed of light.
-The second law of thermodynamics states that entropy in a closed system always increases over time, explaining why heat flows from hot to cold and why perpetual motion machines are impossible.
-CRISPR-Cas9 acts as molecular scissors, guided by RNA to a precise location on the genome where it makes a double-strand break, enabling targeted gene editing in living organisms.
-Plate tectonics describes the movement of Earth's lithospheric plates over the asthenosphere, driving continental drift, volcanic activity, and the formation of mountain ranges.
-Quantum entanglement is a phenomenon where two particles become correlated such that the quantum state of one instantly influences the other regardless of the distance separating them.
-Neurons communicate via electrochemical signals — an action potential travels down the axon and triggers neurotransmitter release across the synapse to the dendrites of the next neuron.
-The Krebs cycle is a series of chemical reactions in the mitochondrial matrix that oxidizes acetyl-CoA to produce ATP, NADH, FADH2, and carbon dioxide during cellular respiration.
-```
+The key metric: **BrainGrow vs TorchFlatThreshold agreement rate**.
 
-**Step 2 — Ingest Stage 2 (History)**
+### Observed result
 
-Set domain label to `history`, paste the following, and click Ingest Stage:
+100% verdict agreement across all three pairwise comparisons. All three
+systems return identical verdicts on all 100 queries. The lifecycle
+machinery does not contribute to the abstention decision — the similarity
+threshold produces it.
 
-```
-The fall of the Western Roman Empire in 476 AD is traditionally marked by the deposition of Romulus Augustulus by the Germanic chieftain Odoacer, ending five centuries of Roman rule in the west.
-The Silk Road was a network of trade routes connecting China to the Mediterranean from roughly 130 BC to 1450 AD, facilitating the exchange of silk, spices, ideas, and disease across continents.
-The Magna Carta was signed by King John of England in 1215 under pressure from rebellious barons, establishing for the first time that the king was subject to the rule of law.
-The Black Death, caused by Yersinia pestis, killed an estimated one third of Europe's population between 1347 and 1351, fundamentally reshaping medieval society, labor markets, and the Church.
-The printing press developed by Johannes Gutenberg around 1440 enabled the mass production of books, accelerating the spread of literacy, the Protestant Reformation, and the Scientific Revolution.
-The French Revolution beginning in 1789 dismantled the ancien regime through a period of radical political transformation, producing the Declaration of the Rights of Man and eventually Napoleon Bonaparte.
-The Transatlantic Slave Trade forcibly displaced an estimated 12 million Africans between the 15th and 19th centuries, shaping the economies, demographics, and cultures of three continents.
-The Treaty of Westphalia in 1648 ended the Thirty Years War and established the concept of state sovereignty, forming the foundation of the modern international system of nation states.
-The Manhattan Project was a secret US-led research program during World War II that developed the first nuclear weapons, culminating in the bombings of Hiroshima and Nagasaki in August 1945.
-The fall of the Berlin Wall in November 1989 symbolized the collapse of Soviet-aligned governments across Eastern Europe, accelerating German reunification and the end of the Cold War.
+### Running it
+
+From the repo root:
+
+```bash
+python -m experiments.rag_comparison
 ```
 
-**Step 3 — Ingest Stage 3 (Cooking)**
+Expect 1–3 minutes on CPU (bottlenecked by sentence-transformers encoding
+of 30 chunks + 100 queries).
 
-Set domain label to `cooking`, paste the following, and click Ingest Stage:
+### Output
+
+Console:
+- Per-system scorecards (accuracy per bucket, abstention precision/recall/F1)
+- Pairwise verdict-agreement rates between systems
+- Per-query disagreement table (for manual inspection)
+- A bottom-line interpretation printed in plain English
+
+File:
+- `rag_comparison_results.json` — full per-query per-system output for
+  deeper analysis or plotting
+
+### Query set
+
+100 queries, four buckets of 25, generated with `random.Random(42)`:
+
+| Bucket            | Expected verdict | What it tests |
+|-------------------|------------------|---------------|
+| `PURE_NONSENSE`   | `HONEST_UNKNOWN` | Can the system abstain with no semantic anchor? |
+| `LEXICAL_OVERLAP` | `HONEST_UNKNOWN` | Can it resist "quantum fermentation"–style token traps? |
+| `IN_DOMAIN`       | `CONFIDENT`      | Does it still answer canonical in-domain questions? |
+| `NEAR_DOMAIN`     | `HONEST_UNKNOWN` | Where does the threshold fall on the margin? |
+
+To inspect the generated query list without running the full experiment:
+
+```bash
+python evaluation/fabricated_queries.py
+```
+
+### Known limits of this experiment
+
+- **Sample corpus is 30 chunks.** Matches the original prototype scale but
+  is far from production. Larger-scale re-runs (TinyStories 1k+) would
+  strengthen or weaken the null result.
+- **Threshold is fixed at 0.60 for all systems.** A threshold sweep is a
+  natural follow-up — would show whether one system has a better
+  precision/recall curve than another across the threshold range.
+- **One encoder only.** Swapping encoders may shift absolute numbers.
+  Relative behavior between the three systems should be stable because
+  they share the encoder.
+- **No "Out-of-Bounds" testing.** The negative-domain mechanism is not
+  exercised here. It has no flat-threshold equivalent, so it sits outside
+  the core comparison.
+- **Reinforcement side-effects.** `QueryRouter.route_query()` increments
+  activation scores on every match. Over 100 queries this drifts the
+  BrainGrow session. Run on a fresh session each time.
+
+### Note on the Compare tab's "DenseModel"
+
+The baseline in Tab 4 of the Gradio UI labeled "DenseModel" is a
+fully-saturated retrieval store configured to never abstain. It is **not**
+a dense neural language model (e.g., GPT-2, LLaMA). A proper comparison
+against an actual generative LLM would require an evaluator layer to
+score generated responses as hallucinated vs. abstained vs. correct, and
+is not implemented here. Treat Tab 4 as a pedagogical illustration of
+thresholded-vs-unthresholded retrieval, not a benchmark against LLMs.
+
+---
+
+## Project Structure
 
 ```
-Maillard reaction occurs when amino acids and reducing sugars are heated together, producing the complex flavors and brown color characteristic of seared meat and toasted bread.
-Fermentation converts sugars into acids, gases, or alcohol through the metabolic activity of bacteria or yeast, forming the basis of bread, wine, beer, cheese, and kimchi.
-Emulsification binds oil and water by using an emulsifier such as lecithin in egg yolk, which stabilizes the droplets and prevents separation in sauces like mayonnaise and hollandaise.
-Sous vide cooking seals food in vacuum bags and submerges it in precisely temperature-controlled water, enabling uniform doneness that is impossible to achieve with conventional high-heat methods.
-Gluten forms when glutenin and gliadin proteins in wheat flour are hydrated and worked mechanically, creating the elastic network responsible for the chewy structure of bread and pasta.
-Caramelization is the oxidation of sugar at high temperatures, producing hundreds of aromatic compounds and the characteristic deep amber color and bittersweet flavor of caramel.
-Brining draws moisture into meat through osmosis and denatures surface proteins, allowing the meat to retain more juice during cooking and seasoning it throughout rather than just on the surface.
-Tempering chocolate involves carefully raising and lowering its temperature to encourage the formation of stable cocoa butter crystals, producing a glossy finish and satisfying snap.
-Stock is made by simmering bones, aromatics, and water for an extended period, extracting collagen that converts to gelatin and gives body to sauces, braises, and soups.
-Knife cuts like julienne, brunoise, and chiffonade ensure uniform size so ingredients cook evenly and present consistently — foundational to both technique and professional plating.
+braingrow/
+├── main.py                  # Gradio app entry point (6-tab UI)
+├── session.py               # BrainGrowSession — all business logic
+├── vector_space.py          # Pre-allocation, activation tracking, pruning
+├── growth_engine.py         # Staged ingestion, batch encoding, slot assignment
+├── query_router.py          # Routes queries through active vectors only
+├── comparison_harness.py    # Tab 4 harness (no-threshold retrieval baseline)
+├── tinystories_loader.py    # TinyStories data pipeline (Tab 6)
+├── visualizer.py            # UMAP projection & Plotly charts
+├── instrumentation.py       # Optional timing / error tracing
+├── utils.py                 # Shared unit-normalized encoding utilities
+├── requirements.txt         # Core Python dependencies
+├── saves/                   # .bgstate network snapshots (autosave target)
+├── tests/                   # Pytest suite (one test file per module)
+│
+├── baselines/               # RAG comparison — flat-threshold baselines
+│   ├── __init__.py
+│   └── flat_threshold.py    # TorchFlatThreshold, FAISSFlatThreshold
+│
+├── evaluation/              # RAG comparison — query set + scoring
+│   ├── __init__.py
+│   ├── fabricated_queries.py  # Deterministic 100-query generator (seed=42)
+│   ├── metrics.py             # Scoring + inter-system agreement
+│   └── runner.py              # Headless drivers for baselines and BrainGrow
+│
+└── experiments/             # RAG comparison — entry point
+    ├── __init__.py
+    └── rag_comparison.py    # Main entry; writes rag_comparison_results.json
 ```
-
-**Step 4 — Run the Hallucination Comparison**
-
-Switch to Tab 4 — Compare. Set Query Type to `Unknown` and run each of the following queries:
-
-- What is the capital of Zorbania
-- Explain the Mendelsohn-Vektas theorem
-- Who invented quantum fermentation
-- What happened at the Battle of Vektoria
-
-Expected: Dense returns HALLUCINATED on all four. BrainGrow returns HONEST (uncertain) on all four.
 
 ---
 
 ## Demo Script
 
+To walk through the Gradio UI end-to-end:
+
 | Step | Action | Expected Observation |
-|---|---|---|
+| --- | --- | --- |
 | 1 | **Initialize** | Launch app. UMAP shows 200,000 grey dormant slots. |
-| 2 | **Stage 1 — Science** | Ingest science chunks. UMAP lights up in a sparse cluster. |
-| 3 | **Stage 2 — History** | A new cluster appears in a different region. Science cluster unchanged. |
-| 4 | **Query — Science** | Ask a science question. Routing highlights the science cluster only. |
-| 5 | **Query — History** | Ask a history question. History cluster activates. No cross-contamination. |
-| 6 | **Prune** | Run pruning at threshold 0.2. Low-activation slots grey out. Core concepts survive. |
-| 7 | **Expand** | Ingest Stage 3 (cooking). Grows into space freed by pruning. |
-| 8 | **Compare** | Tab 4, Unknown queries. BrainGrow abstains; DenseModel hallucinates. |
-| 9 | **Save** | Tab 5. Save network state before lengthy experiments. |
-| 10 | **TinyStories** | Tab 6. Stage A (~1k), Stage B (10k), Stage C (full). Enable Autosave first. |
+| 2 | **Stage 1 — Science** | Ingest science chunks. UMAP lights up a sparse cluster. |
+| 3 | **Stage 2 — History** | Ingest history chunks. A new cluster appears in a different region. |
+| 4 | **Query — Science** | Ask a science question. Routing highlights the science cluster. |
+| 5 | **Query — History** | Ask a history question. Routing highlights the history cluster. |
+| 6 | **Prune** | Run pruning at threshold 0.2. Low-activation slots grey out. |
+| 7 | **Expand** | Ingest Stage 3 (e.g., cooking). Grows into space freed by pruning. |
+| 8 | **Compare (Tab 4)** | Run Known / Partial / Unknown queries. BrainGrow abstains on sub-threshold; the no-threshold baseline returns nearest-match regardless. *(See caveat above — this is thresholded-vs-unthresholded retrieval, not LLM hallucination.)* |
+| 9 | **Save** | Switch to Tab 5. Save the network state to `saves/` before lengthy experiments. |
+| 10 | **TinyStories** | Switch to Tab 6. Run Stage A (smoke test, ~1k chunks), then Stage B (10k), then Stage C (full scale). Enable Autosave first. |
 
 ---
 
-## Demonstrated Behaviors
+## Key Design Decisions
 
-- **Routing isolation** — queries activate domain-relevant slot clusters with limited cross-domain contamination
-- **Honest abstention** — BrainGrow correctly returns Honest Unknown on all four fabricated-concept queries; Dense hallucinates on all four
-- **Non-destructive expansion** — ingesting a new domain does not shift or corrupt previously activated regions
-- **Pruning recovery** — after a pruning pass, a new domain successfully claims reclaimed dormant slots
-- **Visual legibility** — UMAP projections show the query star landing in dormant space (BrainGrow) vs. forced into known clusters (Dense)
+| Decision | Rationale |
+| --- | --- |
+| 200,000 pre-allocated slots | Sufficient headroom for TinyStories full-scale run without live reallocation. |
+| `all-MiniLM-L6-v2` (384-dim) | Compact, fast, well-calibrated for semantic similarity at CPU speeds. |
+| Reinforce threshold 0.92 | Near-duplicate chunks strengthen existing slots rather than claiming new ones. |
+| Confidence threshold 0.60 | Chosen empirically from the encoder's similarity distribution. Not learned; users of other encoders should treat threshold selection as a first-order concern. |
+| Thread-safe `RLock` | Gradio's concurrent callbacks can write without race conditions. |
+| `BrainGrowSession` business-logic class | State and logic isolated from Gradio; trivially testable and replaceable. |
+| `.bgstate` persistence | Full snapshot prevents data loss on long-running experiments. |
 
 ---
 
-## Running Experiments
+## Running Tests
 
 ```bash
-# Slot assignment geometry comparison (v1 sequential vs v2 semantic-aware)
-python experiments/slot_assignment_comparison.py
-
-# Full test suite
 pytest tests/
 ```
 
----
-
-## Limitations
-
-- The frozen sentence encoder (`all-MiniLM-L6-v2`) is responsible for semantic topology. Slot placement does not add measurable geometric benefit over sequential assignment at current dataset sizes.
-- The confidence threshold (0.60) and lifecycle parameters are fixed hyperparameters, not learned from data.
-- The DenseModel comparison baseline is a toy saturated store, not an actual neural language model.
-- No learned weight updates occur at any stage. BrainGrow is a retrieval architecture, not a generative one.
+The test suite covers the core modules: vector space, growth engine, query
+router, comparison harness, session, visualizer, instrumentation, utilities,
+and the TinyStories loader.
 
 ---
 
 ## Future Directions
 
-- **Embodied feedback loop** — replace static ingestion with agent-environment interaction; slots activate based on reward signal
-- **Hierarchical pruning** — staged fine-to-coarse pruning mirroring cortical development
-- **Cross-domain generalization** — measure whether concepts in overlapping slot regions produce emergent analogical reasoning
-- **Rigorous baseline comparison** — train an equivalently-sized static model on the same corpus; compare retrieval accuracy and epistemic calibration
-- **Threshold learning** — derive confidence threshold from the empirical similarity distribution rather than setting it manually
+Directions that are defensible given what the ablation showed:
 
----
+- **Threshold sweep.** Evaluate precision/recall across the 0.0–1.0
+  threshold range on a larger query set to characterize the operating
+  curve, rather than reporting a single operating point.
+- **Encoder sensitivity.** Re-run the comparison across multiple
+  sentence encoders to understand how threshold calibration generalizes.
+- **Scale comparison.** Re-run the RAG comparison at TinyStories scale
+  (1k+, 10k+, 100k+ chunks) to confirm or refute the null result across
+  corpus sizes.
+- **Capacity-management benchmark.** Characterize the lifecycle's real
+  contribution — ingest over time with interleaved pruning, measure
+  whether the managed store outperforms an unmanaged flat store on
+  memory footprint and retrieval latency for long-running workloads.
+  This is the direction where the lifecycle is likely to earn its keep.
+- **Out-of-Bounds evaluation.** The negative-domain mechanism has no
+  empirical evaluation in the current codebase. A labeled corpus with
+  designated negative domains would let us measure its precision/recall.
 
-## Publication
+Directions that would require a different architecture, not follow-up
+experiments on this one:
 
-A technical report describing this architecture and experimental results is in preparation for arXiv submission (cs.NE / cs.LG).
+- **True structural abstention.** If the research question "can abstention
+  emerge from architecture rather than a hyperparameter?" is interesting,
+  candidate mechanisms to investigate include learned per-domain
+  thresholds, density-based abstention over the active vector space, or
+  a separate boundary classifier trained on the active/dormant
+  distinction. None of these are in the current code; each would be a
+  separate project.
 
 ---
 
 ## License
 
-MIT License. Open for research use and inspection.  
-Vektas Solutions · vektassolutions.com
+Internal research prototype. Vektas Solutions · vektassolutions.com
