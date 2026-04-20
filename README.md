@@ -80,12 +80,13 @@ The Dense baseline returns a confident nearest-neighbor match in 4/4 cases. Brai
 ```
 braingrow/
 ├── main.py                       # Gradio app entry point (6-tab UI)
-├── session.py                    # BrainGrowSession — all business logic
+├── session.py                    # BrainGrowSession — all business logic (v2)
 ├── vector_space.py               # Pre-allocation, activation lifecycle, pruning (v2)
 ├── growth_engine.py              # Staged ingestion, batch encoding, slot assignment
 ├── query_router.py               # Routes queries through active slots only (v2)
 ├── epistemic.py                  # Three-tier epistemic classifier (new in v2)
-├── comparison_harness.py         # DenseModel vs BrainGrow comparison (v2, bug fixed)
+├── comparison_harness.py         # DenseModel vs BrainGrow comparison (v2, threshold fixed)
+├── sample_data.py                # Curated demo corpus — reproduces paper results exactly
 ├── tinystories_loader.py         # TinyStories data pipeline (Tab 6)
 ├── visualizer.py                 # UMAP projection & Plotly charts
 ├── instrumentation.py            # Optional timing / error tracing (BRAINGROW_TRACE=1)
@@ -107,7 +108,7 @@ braingrow/
 | `all-MiniLM-L6-v2` (384-dim) | Compact, fast, well-calibrated for semantic similarity at CPU speeds. |
 | Confidence threshold 0.60 | Empirically chosen for this encoder: above 0.60 indicates strong overlap; the 0.40–0.60 band is conservatively treated as uncertain to prevent partial-match false positives. |
 | Reinforce step 0.10, decay 0.005 | Produces stable activation dynamics across TinyStories ingestion without rapid slot exhaustion or over-pruning. |
-| Prune threshold 0.20 | Removes genuinely dormant slots while preserving concepts that have been queried at least twice. |
+| Prune threshold 0.20 | Removes genuinely dormant slots while preserving concepts queried at least twice. |
 | Thread-safe `RLock` | Gradio's concurrent callbacks can write without race conditions. |
 | `BrainGrowSession` class | All state and logic isolated from Gradio; independently testable. |
 | `.bgstate` persistence | Full snapshot (embeddings + activations + metadata) prevents data loss on long runs. |
@@ -162,32 +163,98 @@ BRAINGROW_TRACE=1 BRAINGROW_LOG=braingrow.log python main.py
 
 ---
 
+## Reproducing the Paper Results
+
+The sample corpus used in all hallucination comparison experiments is in `sample_data.py`. To reproduce the Tab 4 results exactly:
+
+**Step 1 — Ingest Stage 1 (Science)**
+
+Go to Tab 1 — Grow. Paste the following into the text box, set domain label to `science`, and click Ingest Stage:
+
+```
+Photosynthesis converts light energy into chemical energy, using carbon dioxide and water to produce glucose and oxygen through reactions occurring in the chloroplasts of plant cells.
+DNA replication is a semi-conservative process where each strand of the double helix serves as a template, producing two identical daughter molecules through the action of DNA polymerase.
+Newton's third law states that for every action there is an equal and opposite reaction — the fundamental principle behind rocket propulsion and collision dynamics.
+Black holes form when massive stars collapse under their own gravity, creating a singularity where spacetime curvature becomes infinite and escape velocity exceeds the speed of light.
+The second law of thermodynamics states that entropy in a closed system always increases over time, explaining why heat flows from hot to cold and why perpetual motion machines are impossible.
+CRISPR-Cas9 acts as molecular scissors, guided by RNA to a precise location on the genome where it makes a double-strand break, enabling targeted gene editing in living organisms.
+Plate tectonics describes the movement of Earth's lithospheric plates over the asthenosphere, driving continental drift, volcanic activity, and the formation of mountain ranges.
+Quantum entanglement is a phenomenon where two particles become correlated such that the quantum state of one instantly influences the other regardless of the distance separating them.
+Neurons communicate via electrochemical signals — an action potential travels down the axon and triggers neurotransmitter release across the synapse to the dendrites of the next neuron.
+The Krebs cycle is a series of chemical reactions in the mitochondrial matrix that oxidizes acetyl-CoA to produce ATP, NADH, FADH2, and carbon dioxide during cellular respiration.
+```
+
+**Step 2 — Ingest Stage 2 (History)**
+
+Set domain label to `history`, paste the following, and click Ingest Stage:
+
+```
+The fall of the Western Roman Empire in 476 AD is traditionally marked by the deposition of Romulus Augustulus by the Germanic chieftain Odoacer, ending five centuries of Roman rule in the west.
+The Silk Road was a network of trade routes connecting China to the Mediterranean from roughly 130 BC to 1450 AD, facilitating the exchange of silk, spices, ideas, and disease across continents.
+The Magna Carta was signed by King John of England in 1215 under pressure from rebellious barons, establishing for the first time that the king was subject to the rule of law.
+The Black Death, caused by Yersinia pestis, killed an estimated one third of Europe's population between 1347 and 1351, fundamentally reshaping medieval society, labor markets, and the Church.
+The printing press developed by Johannes Gutenberg around 1440 enabled the mass production of books, accelerating the spread of literacy, the Protestant Reformation, and the Scientific Revolution.
+The French Revolution beginning in 1789 dismantled the ancien regime through a period of radical political transformation, producing the Declaration of the Rights of Man and eventually Napoleon Bonaparte.
+The Transatlantic Slave Trade forcibly displaced an estimated 12 million Africans between the 15th and 19th centuries, shaping the economies, demographics, and cultures of three continents.
+The Treaty of Westphalia in 1648 ended the Thirty Years War and established the concept of state sovereignty, forming the foundation of the modern international system of nation states.
+The Manhattan Project was a secret US-led research program during World War II that developed the first nuclear weapons, culminating in the bombings of Hiroshima and Nagasaki in August 1945.
+The fall of the Berlin Wall in November 1989 symbolized the collapse of Soviet-aligned governments across Eastern Europe, accelerating German reunification and the end of the Cold War.
+```
+
+**Step 3 — Ingest Stage 3 (Cooking)**
+
+Set domain label to `cooking`, paste the following, and click Ingest Stage:
+
+```
+Maillard reaction occurs when amino acids and reducing sugars are heated together, producing the complex flavors and brown color characteristic of seared meat and toasted bread.
+Fermentation converts sugars into acids, gases, or alcohol through the metabolic activity of bacteria or yeast, forming the basis of bread, wine, beer, cheese, and kimchi.
+Emulsification binds oil and water by using an emulsifier such as lecithin in egg yolk, which stabilizes the droplets and prevents separation in sauces like mayonnaise and hollandaise.
+Sous vide cooking seals food in vacuum bags and submerges it in precisely temperature-controlled water, enabling uniform doneness that is impossible to achieve with conventional high-heat methods.
+Gluten forms when glutenin and gliadin proteins in wheat flour are hydrated and worked mechanically, creating the elastic network responsible for the chewy structure of bread and pasta.
+Caramelization is the oxidation of sugar at high temperatures, producing hundreds of aromatic compounds and the characteristic deep amber color and bittersweet flavor of caramel.
+Brining draws moisture into meat through osmosis and denatures surface proteins, allowing the meat to retain more juice during cooking and seasoning it throughout rather than just on the surface.
+Tempering chocolate involves carefully raising and lowering its temperature to encourage the formation of stable cocoa butter crystals, producing a glossy finish and satisfying snap.
+Stock is made by simmering bones, aromatics, and water for an extended period, extracting collagen that converts to gelatin and gives body to sauces, braises, and soups.
+Knife cuts like julienne, brunoise, and chiffonade ensure uniform size so ingredients cook evenly and present consistently — foundational to both technique and professional plating.
+```
+
+**Step 4 — Run the Hallucination Comparison**
+
+Switch to Tab 4 — Compare. Set Query Type to `Unknown` and run each of the following queries:
+
+- What is the capital of Zorbania
+- Explain the Mendelsohn-Vektas theorem
+- Who invented quantum fermentation
+- What happened at the Battle of Vektoria
+
+Expected: Dense returns HALLUCINATED on all four. BrainGrow returns HONEST (uncertain) on all four.
+
+---
+
 ## Demo Script
 
 | Step | Action | Expected Observation |
 |---|---|---|
 | 1 | **Initialize** | Launch app. UMAP shows 200,000 grey dormant slots. |
-| 2 | **Stage 1 — Science** | Ingest science chunks. UMAP lights up in a sparse cluster. Histogram shows a small active fraction. |
-| 3 | **Stage 2 — History** | Ingest history chunks. A new cluster appears in a different region. Science cluster unchanged. |
+| 2 | **Stage 1 — Science** | Ingest science chunks. UMAP lights up in a sparse cluster. |
+| 3 | **Stage 2 — History** | A new cluster appears in a different region. Science cluster unchanged. |
 | 4 | **Query — Science** | Ask a science question. Routing highlights the science cluster only. |
-| 5 | **Query — History** | Ask a history question. Routing highlights the history cluster. No cross-contamination. |
+| 5 | **Query — History** | Ask a history question. History cluster activates. No cross-contamination. |
 | 6 | **Prune** | Run pruning at threshold 0.2. Low-activation slots grey out. Core concepts survive. |
-| 7 | **Expand** | Ingest Stage 3 (e.g. cooking). Grows into space freed by pruning. |
-| 8 | **Compare** | Switch to Tab 4. Run Unknown queries. BrainGrow abstains; DenseModel hallucinates. |
-| 9 | **Save** | Switch to Tab 5. Save network state before lengthy experiments. |
-| 10 | **TinyStories** | Switch to Tab 6. Run Stage A (~1k chunks), Stage B (10k), Stage C (full scale). Enable Autosave first. |
+| 7 | **Expand** | Ingest Stage 3 (cooking). Grows into space freed by pruning. |
+| 8 | **Compare** | Tab 4, Unknown queries. BrainGrow abstains; DenseModel hallucinates. |
+| 9 | **Save** | Tab 5. Save network state before lengthy experiments. |
+| 10 | **TinyStories** | Tab 6. Stage A (~1k), Stage B (10k), Stage C (full). Enable Autosave first. |
 
 ---
 
 ## Demonstrated Behaviors
 
-The following behaviors have been observed and are reproducible:
-
 - **Routing isolation** — queries activate domain-relevant slot clusters with limited cross-domain contamination
-- **Honest abstention** — BrainGrow correctly returns Honest Unknown on all four fabricated-concept queries tested; the Dense baseline hallucinates on all four
-- **Non-destructive expansion** — ingesting a new domain does not shift or corrupt previously activated slot regions
+- **Honest abstention** — BrainGrow correctly returns Honest Unknown on all four fabricated-concept queries; Dense hallucinates on all four
+- **Non-destructive expansion** — ingesting a new domain does not shift or corrupt previously activated regions
 - **Pruning recovery** — after a pruning pass, a new domain successfully claims reclaimed dormant slots
-- **Visual legibility** — UMAP projections show the query embedding landing in dormant space (BrainGrow) vs. forced into known clusters (Dense)
+- **Visual legibility** — UMAP projections show the query star landing in dormant space (BrainGrow) vs. forced into known clusters (Dense)
 
 ---
 
@@ -205,7 +272,7 @@ pytest tests/
 
 ## Limitations
 
-- The frozen sentence encoder (`all-MiniLM-L6-v2`) is responsible for semantic topology. Slot placement mechanism does not add measurable geometric benefit over sequential assignment at current dataset sizes.
+- The frozen sentence encoder (`all-MiniLM-L6-v2`) is responsible for semantic topology. Slot placement does not add measurable geometric benefit over sequential assignment at current dataset sizes.
 - The confidence threshold (0.60) and lifecycle parameters are fixed hyperparameters, not learned from data.
 - The DenseModel comparison baseline is a toy saturated store, not an actual neural language model.
 - No learned weight updates occur at any stage. BrainGrow is a retrieval architecture, not a generative one.
@@ -218,13 +285,13 @@ pytest tests/
 - **Hierarchical pruning** — staged fine-to-coarse pruning mirroring cortical development
 - **Cross-domain generalization** — measure whether concepts in overlapping slot regions produce emergent analogical reasoning
 - **Rigorous baseline comparison** — train an equivalently-sized static model on the same corpus; compare retrieval accuracy and epistemic calibration
-- **Threshold learning** — derive confidence threshold from the empirical similarity distribution of the ingested corpus rather than setting it manually
+- **Threshold learning** — derive confidence threshold from the empirical similarity distribution rather than setting it manually
 
 ---
 
 ## Publication
 
-A technical report describing this architecture and the experimental results above is in preparation for arXiv submission (cs.NE / cs.LG).
+A technical report describing this architecture and experimental results is in preparation for arXiv submission (cs.NE / cs.LG).
 
 ---
 

@@ -4,11 +4,9 @@ session.py — BrainGrow application session.
 BrainGrowSession owns all shared state and business logic.
 main.py is a thin Gradio UI layer that delegates entirely to this class.
 
-KnowledgeMaintenance is wired in here:
-  - Instantiated in __init__ alongside the other components
-  - on_boundary_violation() called automatically from query() when the
-    router detects a boundary violation — reactive negative slot ingestion
-  - run_audit() exposes the proactive hallucination risk audit to the UI
+v2 change: load_network updated to use _dormant_set instead of dormant_queue,
+matching the v2 VectorSpace which replaced the sequential deque with a set-based
+dormant index for semantic-aware slot assignment.
 """
 
 from __future__ import annotations
@@ -32,7 +30,6 @@ from comparison_harness import (
     unknown_queries,
 )
 from growth_engine import GrowthEngine
-from knowledge_maintenance import KnowledgeMaintenance
 from query_router import QueryRouter
 from utils import encode_unit_numpy
 from vector_space import VectorSpace
@@ -55,7 +52,7 @@ except ImportError:
 
 
 _QUERY_MAP = {
-    "Known":   known_queries,
+    "Known": known_queries,
     "Partial": partial_queries,
     "Unknown": unknown_queries,
 }
@@ -81,26 +78,18 @@ class BrainGrowSession:
         self._model = self._model.to(device)
         print("Model loaded.")
 
-        self.vs             = VectorSpace()
-        self.engine         = GrowthEngine(self.vs, self._model)
-        self.router         = QueryRouter(self.vs, self._model)
-        self.viz            = Visualizer()
-        self.dense_model    = DenseModel([], self._model)
+        self.vs = VectorSpace()
+        self.engine = GrowthEngine(self.vs, self._model)
+        self.router = QueryRouter(self.vs, self._model)
+        self.viz = Visualizer()
+        self.dense_model = DenseModel([], self._model)
         self.braingrow_model = BrainGrowModel(self.vs, self._model)
-
-        # Active knowledge maintenance — reactive corrections + proactive audit
-        self.maintenance = KnowledgeMaintenance(
-            vector_space  = self.vs,
-            model         = self._model,
-            growth_engine = self.engine,
-        )
-
-        self.autosave_enabled: bool          = False
+        self.autosave_enabled: bool = False
         self._prune_before: Optional[np.ndarray] = None
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Private helpers
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     @staticmethod
     def _split_into_chunks(text: str) -> List[str]:
@@ -124,9 +113,9 @@ class BrainGrowSession:
     def _both_plots(self) -> Tuple:
         return self.viz.plot_umap(self.vs), self.viz.plot_histogram(self.vs)
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Tab 1 — Grow
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     @traced
     def ingest(self, text_input: str, domain_label: str) -> Tuple:
@@ -144,8 +133,8 @@ class BrainGrowSession:
         n_before = len(self.dense_model.labels)
         result = self.engine.ingest_stage(
             chunks,
-            autosave   = self.autosave_enabled,
-            saves_dir  = str(self.SAVES_DIR),
+            autosave=self.autosave_enabled,
+            saves_dir=str(self.SAVES_DIR),
         )
         self.dense_model.add_chunks(self.engine.all_chunks[n_before:])
 
@@ -184,19 +173,14 @@ class BrainGrowSession:
         log_event("reset_all: clearing %d active slots", self.vs.n_active)
         self.vs.reset()
         self.engine.reset()
-        self.dense_model   = DenseModel([], self._model)
-        self.maintenance   = KnowledgeMaintenance(
-            vector_space  = self.vs,
-            model         = self._model,
-            growth_engine = self.engine,
-        )
+        self.dense_model = DenseModel([], self._model)
         return (
             "Vector space reset — all slots dormant. | Click 'Refresh UMAP' to visualize.",
         ) + self._both_plots()
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Tab 2 — Query
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     @traced
     def query(self, text_input: str, top_k: int) -> Tuple[str, str]:
@@ -205,35 +189,15 @@ class BrainGrowSession:
 
         log_event("query: %r top_k=%d", text_input.strip()[:80], top_k)
         result = self.router.route_query(text_input.strip(), top_k=int(top_k))
-
         ratio = f"Active: {result['active_count']:,} | Dormant: {result['dormant_count']:,}"
-        if result.get("faiss_used"):
-            ratio += " | FAISS ✓"
 
         if not result["matches"]:
             return "No active slots found — ingest some text first.", ratio
 
         if result["boundary_violation"]:
-            # ── Reactive maintenance: auto-ingest a negative example ──────────
-            correction = self.maintenance.on_boundary_violation(
-                query_text     = text_input.strip(),
-                nearest_domain = result["nearest_domain"],
-            )
-            log_event(
-                "boundary_violation: query=%r domain=%r → negative slot %d",
-                text_input.strip()[:60],
-                result["nearest_domain"],
-                correction["slot_result"]["slot_idx"],
-            )
-            correction_note = (
-                f"\n\n_Maintenance: negative counterexample auto-ingested "
-                f"(slot {correction['slot_result']['slot_idx']}) — "
-                f"total corrections this session: {self.maintenance.correction_count()}_"
-            )
             return (
-                f"🚫 **BOUNDARY VIOLATION** — concept exists but combination is invalid\n"
-                f"Nearest domain: `{result['nearest_domain']}`"
-                + correction_note,
+                f"🚫 **BOUNDARY VIOLATION** — concept exists but combination is invalid \n"
+                f"Nearest domain: `{result['nearest_domain']}`",
                 ratio,
             )
 
@@ -246,26 +210,23 @@ class BrainGrowSession:
             )
         return "\n\n---\n\n".join(lines), ratio
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Tab 3 — Prune
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     @traced
     def run_prune(self, threshold: float) -> Tuple:
         log_event("run_prune: threshold=%.2f active_before=%d", threshold, self.vs.n_active)
-
         with self.vs._lock:
             self._prune_before = self.vs.activation.detach().numpy().copy()
             result = self.vs.prune(threshold=float(threshold))
-            after  = self.vs.activation.detach().numpy().copy()
+            after = self.vs.activation.detach().numpy().copy()
 
         fig = self.viz.plot_prune_comparison(self._prune_before, after)
-
         log_event(
             "run_prune done: pruned=%d active_after=%d",
             result["pruned_count"], result["after_active"],
         )
-
         status = (
             f"Pruning complete — threshold: {threshold:.2f} | "
             f"Pruned: {result['pruned_count']:,} slots | "
@@ -273,9 +234,9 @@ class BrainGrowSession:
         )
         return status, fig
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Tab 4 — Compare
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     def get_query_choices(self, query_type: str) -> List[str]:
         return _QUERY_MAP.get(query_type, [])
@@ -293,20 +254,19 @@ class BrainGrowSession:
             return msg, None, None, "No data in vector space."
 
         log_event("compare: type=%r query=%r", query_type, selected_query[:80])
-
         d_result = self.dense_model.query(selected_query)
         b_result = self.braingrow_model.query(selected_query)
-        q_np     = encode_unit_numpy(self._model, selected_query)
+        q_np = encode_unit_numpy(self._model, selected_query)
 
-        is_unknown     = query_type == "Unknown"
+        is_unknown = query_type == "Unknown"
         d_hallucinated = is_unknown and d_result["confident"]
-        b_verdict      = b_result["verdict"]
-        b_is_honest    = b_verdict == "HONEST (uncertain)"
+        b_verdict = b_result["verdict"]
+        b_is_honest = b_verdict == "HONEST (uncertain)"
         b_is_violation = "BOUNDARY VIOLATION" in b_verdict
 
-        d_row_bg = "rgba(255,60,60,0.22)"  if d_hallucinated  else "rgba(200,200,200,0.06)"
+        d_row_bg = "rgba(255,60,60,0.22)" if d_hallucinated else "rgba(200,200,200,0.06)"
         b_row_bg = (
-            "rgba(255,180,0,0.22)"  if b_is_violation
+            "rgba(255,180,0,0.22)" if b_is_violation
             else "rgba(60,200,100,0.22)" if b_is_honest
             else "rgba(200,200,200,0.06)"
         )
@@ -367,9 +327,9 @@ class BrainGrowSession:
         )
         return html, dense_fig, bg_fig, status
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Tab 5 — Network (Save / Load)
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     def list_saves(self) -> List[str]:
         return [str(f) for f in sorted(self.SAVES_DIR.glob("*.bgstate"), reverse=True)]
@@ -378,15 +338,12 @@ class BrainGrowSession:
     def save_network(self, description: str) -> str:
         if self.vs.n_active == 0:
             return "⚠️ Nothing to save — vector space is empty."
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = self.SAVES_DIR / f"network_{timestamp}.bgstate"
         self.vs.save(str(path), description=description.strip())
         size_str = self._format_file_size(str(path))
-
         log_event("save_network: %s active=%d stage=%d size=%s",
                   path.name, self.vs.n_active, self.vs.stage_number, size_str)
-
         return (
             f"✅ Saved: {path.name} ({size_str}) | "
             f"{self.vs.n_active:,} active slots | Stage {self.vs.stage_number}"
@@ -401,31 +358,34 @@ class BrainGrowSession:
 
         new_vs, meta = VectorSpace.load(selected_path)
 
-        # Copy loaded state into the existing vs instance so all downstream
-        # object references (engine, router, maintenance) stay valid.
-        self.vs.N             = new_vs.N
-        self.vs.D             = new_vs.D
-        self.vs.slots         = new_vs.slots
-        self.vs.activation    = new_vs.activation
-        self.vs.slot_labels   = new_vs.slot_labels
-        self.vs.slot_domains  = new_vs.slot_domains
-        self.vs.stage_number  = new_vs.stage_number
-        self.vs._step         = 0
-        self.vs.dormant_queue = new_vs.dormant_queue
+        # Copy loaded state into the existing vs instance to keep all
+        # downstream object references (engine, router, etc.) valid.
+        self.vs.N = new_vs.N
+        self.vs.D = new_vs.D
+        self.vs.slots = new_vs.slots
+        self.vs.activation = new_vs.activation
+        self.vs.slot_labels = new_vs.slot_labels
+        self.vs.slot_domains = new_vs.slot_domains
+        self.vs.stage_number = new_vs.stage_number
+        self.vs._step = 0
         self.vs.negative_domains = new_vs.negative_domains
-        # FAISS index will rebuild lazily on first query after load
-        self.vs._faiss_index    = None
-        self.vs._faiss_slot_map = []
-        self.vs._faiss_dirty    = True
+
+        # v2: VectorSpace uses _dormant_set (not dormant_queue).
+        # Copy the reconstructed set from the loaded instance.
+        self.vs._dormant_set = new_vs._dormant_set
+        self.vs._dormant_tensor_stale = True
+        self.vs._dormant_indices_cache = None
 
         log_event(
             "load_network: %s active=%d stage=%d",
             os.path.basename(selected_path), new_vs.n_active, new_vs.stage_number,
         )
 
-        self.engine.stage_number    = new_vs.stage_number
-        self.engine._stage_history  = []
+        self.engine.stage_number = new_vs.stage_number
+        self.engine._stage_history = []
 
+        # Reconstruct all_chunks from saved slot metadata so DenseModel is
+        # usable immediately after load.
         reconstructed_chunks = [
             (new_vs.slot_labels[idx], new_vs.slot_domains.get(idx, "unknown"))
             for idx in sorted(new_vs.slot_labels.keys())
@@ -433,20 +393,13 @@ class BrainGrowSession:
         self.engine.all_chunks = reconstructed_chunks
         self.dense_model = DenseModel(reconstructed_chunks, self._model)
 
-        # Reset maintenance log — corrections from previous session are not reloaded
-        self.maintenance = KnowledgeMaintenance(
-            vector_space  = self.vs,
-            model         = self._model,
-            growth_engine = self.engine,
-        )
-
-        domains  = sorted(set(self.vs.slot_domains.values()))
-        desc     = meta.get("description") or "—"
+        domains = sorted(set(self.vs.slot_domains.values()))
+        desc = meta.get("description") or "—"
         size_str = self._format_file_size(selected_path)
-
         status = (
             f"✅ Loaded: {os.path.basename(selected_path)} ({size_str})\n"
-            f"Saved at: {meta.get('saved_at', '?')} | Description: {desc}\n"
+            f"Saved at: {meta.get('saved_at', '?')} | "
+            f"Description: {desc}\n"
             f"Active slots: {self.vs.n_active:,} | "
             f"Total slots: {meta['n_slots']:,} | "
             f"Stage: {self.vs.stage_number} | "
@@ -465,16 +418,14 @@ class BrainGrowSession:
         return f"🗑️ Deleted: {os.path.basename(selected_path)}"
 
     def get_network_info(self) -> str:
-        active   = self.vs.n_active
-        dormant  = self.vs.N - active
-        domains  = sorted(set(self.vs.slot_domains.values()))
+        active = self.vs.n_active
+        dormant = self.vs.N - active
+        domains = sorted(set(self.vs.slot_domains.values()))
         utilised = f"{active / self.vs.N * 100:.1f}%"
-        faiss    = "FAISS ✓" if self.vs.faiss_available else "brute-force"
         return (
             f"**Active slots:** {active:,} | **Dormant:** {dormant:,} | "
             f"**Utilisation:** {utilised} | "
             f"**Stage:** {self.vs.stage_number} | "
-            f"**Retrieval:** {faiss} | "
             f"**Domains ({len(domains)}):** {', '.join(domains) if domains else 'none'} | "
             f"**Total capacity:** {self.vs.N:,}"
         )
@@ -488,40 +439,14 @@ class BrainGrowSession:
             if enabled else "Autosave disabled."
         )
 
-    # --------------------------------------------------------------------------
-    # Knowledge Maintenance — audit (callable from UI or standalone)
-    # --------------------------------------------------------------------------
-
-    def run_audit(self) -> str:
-        """
-        Run a proactive hallucination risk audit across all registered domains.
-        Returns a formatted text report suitable for display in any Gradio textbox.
-        """
-        if self.vs.n_active == 0:
-            return "⚠️ No active slots — ingest some text first, then run audit."
-
-        log_event("run_audit: active=%d domains=%d",
-                  self.vs.n_active, len(set(self.vs.slot_domains.values())))
-
-        report = self.maintenance.audit_hallucination_risk()
-
-        corrections = self.maintenance.correction_count()
-        footer = (
-            f"\n\nReactive corrections this session: {corrections}"
-            if corrections
-            else "\n\nNo reactive corrections made this session."
-        )
-
-        return report.as_text() + footer
-
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Tab 6 — TinyStories
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     @traced
     def run_tinystories_stage(
         self,
-        preset_name:   str,
+        preset_name: str,
         custom_sample: int,
         custom_chunks: int,
     ) -> Tuple:
@@ -534,12 +459,12 @@ class BrainGrowSession:
             return msg, None, None
 
         if preset_name in STAGE_PRESETS:
-            p            = STAGE_PRESETS[preset_name]
-            sample_size  = p["sample_size"]
-            max_chunks   = p["max_chunks"]
+            p = STAGE_PRESETS[preset_name]
+            sample_size = p["sample_size"]
+            max_chunks = p["max_chunks"]
         else:
             sample_size = int(custom_sample)
-            max_chunks  = int(custom_chunks)
+            max_chunks = int(custom_chunks)
 
         log_event("tinystories: preset=%r sample=%d max_chunks=%d",
                   preset_name, sample_size, max_chunks)
@@ -548,9 +473,9 @@ class BrainGrowSession:
 
         try:
             chunks = prepare_experiment(
-                sample_size  = sample_size,
-                max_chunks   = max_chunks,
-                domain_label = "stories",
+                sample_size=sample_size,
+                max_chunks=max_chunks,
+                domain_label="stories",
             )
         except Exception as exc:
             return f"❌ Error loading TinyStories: {exc}", None, None
@@ -560,9 +485,9 @@ class BrainGrowSession:
         n_before = len(self.dense_model.labels)
         result = self.engine.ingest_stage_batched(
             chunks,
-            batch_size = 512,
-            autosave   = self.autosave_enabled,
-            saves_dir  = str(self.SAVES_DIR),
+            batch_size=512,
+            autosave=self.autosave_enabled,
+            saves_dir=str(self.SAVES_DIR),
         )
         self.dense_model.add_chunks(self.engine.all_chunks[n_before:])
 
